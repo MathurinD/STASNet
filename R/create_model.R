@@ -63,7 +63,7 @@ not_duplicated <- function(x){
 #' Creates and fits a parameterised model from experimental data, network structure and basal activity information.
 #'
 #' @param model_links Path to the file containing the network structure, either in matrix form or in list of links form. Extension .tab expected
-#' @param basal_file Path to the file indicating the nodes without basal activity. Extension .dat expected.
+#' @param basal_file Path to the file indicating the nodes with basal activity. Extension .dat expected.
 #' @param data.stimulation Path to the file containing the data in MRA_MIDAS format. Extension .csv expected.
 ## CHECK THE IMPLEMENTATION FOR THE NO BASAL
 #' @param data.variation Path to the file containing the coefficient of variation for each measurement in MRA_MIDAS format. If it is not provided, the function uses the replicates of the data.stimulation file to determine a variance per probe (i.e antibody/DNA fragment/...). Extension .var expected.
@@ -81,7 +81,6 @@ not_duplicated <- function(x){
 #' @param MIN_CV Minimum coefficient of variation.
 #' @param DEFAULT_CV Default coefficient of variation to use when none is provided and there are no replicated in the data.
 #' @param model_name The name of the model is derived from the name of the data.stimulation file name. If data.stimulation is a matrix or a data.frame, 'model_name' will be used to name the model.
-#' @param rearrange Whether the rows should be rearranged. "no" to keep the order of the perturbations from the data file, "bystim" to group by stimulations, "byinhib" to group by inhibitions.
 #' @param optimizer One of c('levmar', 'siman', 'hybrid', 'gradsim', 'simgrad') to choose whether the optimizer should use the Levenberg-Marquardt algorithm, Simulated Annealing or an hybrid alternating between the two with gradiend first ('gradsim') or simulated annealing firest ('simgrad').
 #' @param data_space One of "log" or "linear". Determines whether the data should be fitted in log space or linear space. The parameters will be in log space in both cases, but the log space data might be more adapted if the data are log-normal (as opposed to normal assumed by the linear option).
 #' @return An MRAmodel object describing the model and its best fit, containing the data
@@ -96,12 +95,12 @@ not_duplicated <- function(x){
 #' }
 #' @family Model initialisation
 # TODO completely remove examples or add datafile so they work (or use data matrices)
-createModel <- function(model_links, basal_file, data.stimulation, data.variation="", nb_cores=1, inits=1000, perform_plots=F, precorrelate=T, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", rearrange="bystim", optimizer="levmar", data_space="linear") {
+createModel <- function(model_links, basal_file, data.stimulation, data.variation="", nb_cores=1, inits=1000, perform_plots=F, precorrelate=T, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", optimizer="levmar", data_space="linear") {
   # Creation of the model structure object
   model_structure = extractStructure(model_links)
   basal_activity = extractBasalActivity(basal_file)
   
-  core = extractModelCore(model_structure, basal_activity, data.stimulation, data.variation, unused_perturbations, unused_readouts, MIN_CV, DEFAULT_CV, rearrange=rearrange, data_space=data_space)
+  core = extractModelCore(model_structure, basal_activity, data.stimulation, data.variation, unused_perturbations, unused_readouts, MIN_CV, DEFAULT_CV, data_space=data_space)
   expdes = core$design
   data = core$data
 
@@ -153,17 +152,7 @@ createModel <- function(model_links, basal_file, data.stimulation, data.variatio
   }
 
   if (perform_plots) { # Best residuals to check the convergence of the fitting procedure
-    if ( all(is.na(residuals)) ) {
-        warning("All residuals are NAs! (no residual plot possible)")
-    } else {
-        plot(1:length(order_resid), sort(c(old_topres,residuals[order_resid[-c(1:length(order_id))]]),decreasing = F), main=paste0("Best residuals ", model_name), ylab="Likelihood", xlab="rank", log="y",type="l",lwd=2)
-        lines(1:length(order_id),sort(residuals[order_id],decreasing = F),col="red")
-        if (length(order_resid) >= 100) {
-            hundred_best = residuals[order_resid[1:100]]
-            plot(1:100, hundred_best, main=paste0("Best 100 residuals ", model_name), ylab="Likelihood", xlab="rank", log="y",type="l",lwd=2, ylim=c(hundred_best[1], hundred_best[100]+1))
-            lines(1:length(order_id),sort(residuals[order_id],decreasing = F),col="red")
-        }
-    }
+      residuals_plot(residuals, model_name)
   }
   
   range_var <- function(vv) { rr=range(vv); return( (rr[2]-rr[1])/max(abs(rr)) ) }
@@ -204,7 +193,7 @@ createModel <- function(model_links, basal_file, data.stimulation, data.variatio
 #' @inheritParams createModel
 #' @export
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
-createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb_cores=1, inits=1000, perform_plots=F, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", rearrange="bystim", optimizer="levmar", data_space="linear") {
+createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb_cores=1, inits=1000, perform_plots=F, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", optimizer="levmar", data_space="linear") {
   if (length(csv_files) != length(var_files)) {
     if (length(var_files) == 0) {
       var_files = rep("", length(csv_files))
@@ -212,12 +201,11 @@ createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb
       stop("'var_files' must have the same length as 'csv_files' or be of length 0")
     }
   }
-  if (!rearrange %in% c("bystim", "byinhib")) { stop("Invalid 'rearrange' for createModelSet, must be 'byinhib' or 'bystim'") }
   model_structure = extractStructure(model_links)
   basal_activity = extractBasalActivity(basal_file)
   
   nb_submodels = length(csv_files)
-  core0 = extractModelCore(model_structure, basal_activity, csv_files[[1]], var_files[[1]], unused_perturbations, dont_read=unused_readouts, MIN_CV, DEFAULT_CV, rearrange=rearrange, data_space=data_space)
+  core0 = extractModelCore(model_structure, basal_activity, csv_files[[1]], var_files[[1]], unused_perturbations, dont_read=unused_readouts, MIN_CV, DEFAULT_CV, data_space=data_space)
   stim_data = core0$data$stim_data
   unstim_data = core0$data$unstim_data
   error = core0$data$error
@@ -234,7 +222,7 @@ createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb
   if (data_space == "log") { data_$use_log() }
   data_$addData(core0$data, FALSE)
   for (ii in 2:nb_submodels) {
-    core = extractModelCore(model_structure, basal_activity, csv_files[[ii]], var_files[[ii]], unused_perturbations, dont_read=unused_readouts, MIN_CV, DEFAULT_CV, rearrange=rearrange, data_space=data_space)
+    core = extractModelCore(model_structure, basal_activity, csv_files[[ii]], var_files[[ii]], unused_perturbations, dont_read=unused_readouts, MIN_CV, DEFAULT_CV, data_space=data_space)
     if (!all( dim(core0$data$unstim_data)==dim(core$data$unstim_data) )) {
       stop(paste0("dimension of 'unstim_data' from model ", ii, " do not match those of model 1"))
     } else if (!all( dim(core0$data$error)==dim(core$data$error) )) {
@@ -290,12 +278,7 @@ createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb
     message(paste0(trim_num(sort(residuals)[1:20],behind_comma = 4), collapse=" "))
   }
   if (perform_plots) {
-    if ( all(is.na(residuals)) ) {
-        warning("All residuals are NAs! (no residual plot possible)")
-    } else {
-      plot(1:length(order_resid), sort(c(old_topres,residuals[order_resid[-c(1:length(order_id))]]),decreasing = F), main=paste0("Best residuals ", model_name), ylab="Likelihood", xlab="rank", log="y",type="l",lwd=2)
-      lines(1:length(order_id),sort(residuals[order_id],decreasing = F),col="red")
-    }
+      residuals_plot(residuals, model_name)
   }
   
   bestid = order(residuals)[1]
@@ -318,11 +301,12 @@ createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb
 #' @param accuracy Cutoff probability for the chi^2 test
 #' @param method Name of the LHS method to use
 #' @param notVariable Coefficients that should not be varied, either a numeric or character vector identifying the coefficients from 'modelset$model$getParametersNames()$names', defaults to 'c()'.
+#' @param max_variables Maximum number of parameters to vary
 #' @return An updated MRAmodelSet with the new set of coefficients
 #' @export
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
 #' @author Bertram Klinger \email{bertram.klinger@charite.de}
-addVariableParameters <- function(original_modelset, nb_cores=0, max_iterations=0, nb_samples=100, accuracy=0.95, method="geneticlhs",notVariable=c()) {
+addVariableParameters <- function(original_modelset, nb_cores=0, max_iterations=0, nb_samples=100, accuracy=0.95, method="geneticlhs",notVariable=c(), max_variables=Inf) {
   # clone MRAmodelSet object to have seperate objects at hand
   modelset = cloneModel(original_modelset)
   
@@ -357,9 +341,9 @@ addVariableParameters <- function(original_modelset, nb_cores=0, max_iterations=
   
   if (nr_free_params==0){
     warning("No parameters left to be set variable!")
-  } else{ 
+  } else { 
     if (max_iterations <= 0 | max_iterations > nr_free_params){
-      max_iterations = nr_free_params
+      max_iterations = min(nr_free_params, max)
     }
     
   # Extension Phase: find the parameter which fitted separately to each model improves the performance most and if significant keep variable    
@@ -847,7 +831,7 @@ classic_initialisation <- function(model, data, nb_samples) {
 
 #' Extraction of object from file or object
 #' @param to_detect An object to check or a string. A string is interpreted as a path to a file containing a matrix compatible with the target object. 
-#' @name extraction
+#' @rdname extraction
 NULL
 
 #' Extract a ModelStructure
@@ -858,9 +842,9 @@ NULL
 #' @return 'extractStructure' returns a C++ object of class 'ModelStructure'
 #' @rdname extraction
 #' @export
-extractStructure <- function(to_detect, names="", adj=FALSE) {
+extractStructure <- function(to_detect, name="", adj=FALSE) {
   model_links = to_detect
-  struct_name = paste0(names, collapse="_")
+  struct_name = paste0(name, collapse="_")
   if (is.string(model_links)) {
       # Read the file, and extract the matrix corresponding to it
       structure_file = readLines(model_links)
@@ -924,10 +908,20 @@ extractStructure <- function(to_detect, names="", adj=FALSE) {
         }
       }
     }
-    
+  }
+  unconnected_nodes = c()
+  unconnected_rows = c()
+  for (rr in 1:nrow(links_list)) {
+      if (links_list[rr,2] == "NULL") {
+          unconnected_nodes = c(unconnected_nodes, links_list[rr,1])
+          unconnected_rows = c(unconnected_rows, rr)
+      }
+  }
+  if (length(unconnected_rows) > 0) {
+      links_list = links_list[-unconnected_rows,,drop=FALSE]
   }
 
-  model_structure=getModelStructure(links_list, struct_name)
+  model_structure=getModelStructure(links_list, unconnected_nodes, struct_name)
   
   return(model_structure)
 }
@@ -1124,10 +1118,9 @@ plotNetworkGraph <- function(structure, expdes="", local_values="", print_values
 #' @param dont_read Readouts to be removed for the fit, will not be used nor simulated. (vector of names)
 #' @param MIN_CV Minimum coefficient of variation.
 #' @param DEFAULT_CV Default coefficient of variation to use when none is provided and there are no replicates in the data.
-#' @param rearrange Whether the rows should be rearranged. "no" to keep the order of the perturbations from the data file, "bystim" to group by stimulations, "byinhib" to group by inhibitions.
 #' @param data_space One of "log" or "linear". Determines whether the data should be fitted in log space or linear space. The parameters will be in log space in both cases, but the log space data might be more adapted if the data are log-normal (as opposed to normal assumed by the linear option).
 #' @seealso \code{\link{extractMIDAS}}
-extractModelCore <- function(model_structure, basal_activity, data_filename, var_filename="", dont_perturb=c(), dont_read=c(), MIN_CV=0.1, DEFAULT_CV=0.3, rearrange="no", data_space="log") {
+extractModelCore <- function(model_structure, basal_activity, data_filename, var_filename="", dont_perturb=c(), dont_read=c(), MIN_CV=0.1, DEFAULT_CV=0.3, data_space="log") {
   if (!data_space %in% c("log", "linear")) { stop(paste("Invalid 'data_space':", data_space, ", must be one of c('log', 'linear')")) }
 
   model_structure = extractStructure(model_structure)
@@ -1190,7 +1183,7 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
     if (length(perturbations)==0){
       stop("All perturbations have been removed can not continue modelling")
     }
-    if (!any(perturbations[-rm_rows,]==1)){
+    if (length(rm_rows) > 0 && !any(perturbations[-rm_rows,]==1)){
       stop("Remaining perturbations only occur in combination with removed perturbations, please reconsider perturbation scheme")
     }
   }
@@ -1298,7 +1291,8 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
   # Derive the error either from the CV in linear space or the sd of the log in log space
   if (data_space == "log") {
     error = aggregate(data_values, by=perturbations, linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    error = matrix(exp(colMeans(log(error), na.rm=TRUE)), nrow=nrow(error), ncol=ncol(error), byrow=TRUE, dimnames=list(rownames(error), colnames(error)))
+    replicates_count = aggregate(cbind(matrix(1, nrow=nrow(perturbations), dimnames=list(NULL,"count")), perturbations)[1], by=perturbations, sum, na.rm=TRUE)
+    error = exp( matrix(colMeans(log(error), na.rm=TRUE), nrow=nrow(error), ncol=ncol(error), byrow=TRUE, dimnames=list(rownames(error), colnames(error))) / sqrt(matrix(rep(replicates_count$count, ncol(error)), ncol=ncol(error))) )
     error[error < exp(MIN_CV)] = exp(MIN_CV)
     error[is.na(error)] = mean(as.matrix(error), na.rm=TRUE)
     if ( all(is.na(error))) {
@@ -1351,79 +1345,11 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
   measured_nodes = colnames(mean_values)
   measured_nodes = measured_nodes[measured_nodes %in% model_structure$names] # Preserve the order in the file, allowing to specify the order of the readouts in the input
   
-  if (rearrange %in% c("bystim", "byinhib")) {
-    # Arrange data according to experimental design
-    stim_motifs = aggregate(stimuli,by=as.data.frame(stimuli),max,na.rm=T)[,-(1:ncol(stimuli)),drop=F] # sorts automatically
-    inh_motifs = aggregate(inhibitor,by=as.data.frame(inhibitor),max,na.rm=T)[,-(1:ncol(inhibitor)),drop=F] # sorts automatically
-    
-    error_sort = error[0, measured_nodes,drop=F]
-    stim_data_sort = mean_values[0, measured_nodes,drop=F]
-    cv_sort = cv_values[0,measured_nodes,drop=F]
-    stim_sort = if (no_stim) {as.matrix(stimuli)} else{stimuli[0, ,drop=F]}
-    inh_sort = if (no_inh) {as.matrix(inhibitor)} else{inhibitor[0, ,drop=F]}
-    if (rearrange == "byinhib") { # Invert variables
-      tmp = stim_sort
-      stim_sort = inh_sort
-      inh_sort = tmp
-      tmp = no_stim
-      no_stim = no_inh
-      no_inh = tmp
-      tmp = stim_motifs
-      stim_motifs = inh_motifs
-      inh_motifs = tmp
-      tmp = stimuli
-      stimuli = inhibitor
-      inhibitor = tmp
-    }
-    
-    if (!no_stim){
-      for (ii in 1:nrow(stim_motifs)){
-        stim_pos = apply(stimuli==matrix(rep(stim_motifs[ii,], each=nrow(stimuli)), nrow=nrow(stimuli)), 1, all)
-        if (!no_inh){
-          for (jj in 1:nrow(inh_motifs)){
-            inh_pos = apply(inhibitor==matrix(rep(inh_motifs[jj,], each=nrow(inhibitor)), nrow=nrow(inhibitor)), 1, all)
-            if (any(stim_pos & inh_pos)){
-              error_sort = rbind(error_sort, error[stim_pos & inh_pos, measured_nodes,drop=F])
-              stim_data_sort = rbind(stim_data_sort, mean_values[stim_pos & inh_pos, measured_nodes, drop=F])
-              cv_sort = rbind(cv_sort, cv_values[stim_pos & inh_pos, measured_nodes, drop=F])
-              stim_sort = rbind(stim_sort, stimuli[stim_pos & inh_pos, ,drop=F])
-              inh_sort = rbind(inh_sort, inhibitor[stim_pos & inh_pos, ,drop=F])
-            }
-          }
-        }else if (any(stim_pos)){
-          error_sort = rbind(error_sort, error[stim_pos, measured_nodes,drop=F])
-          stim_data_sort = rbind(stim_data_sort, mean_values[stim_pos, measured_nodes,drop=F])
-          cv_sort = rbind(cv_sort, cv_values[stim_pos, measured_nodes,drop=F])
-          stim_sort = rbind(stim_sort, stimuli[stim_pos, ,drop=F])
-        }
-      }
-    } else {
-      for (jj in 1:nrow(inh_motifs)){
-        inh_pos = apply(inhibitor==matrix(rep(inh_motifs[jj,], each=nrow(inhibitor)), nrow=nrow(inhibitor)), 1, all)
-        if (any(inh_pos)){
-          error_sort = rbind(error_sort, error[inh_pos, measured_nodes,drop=F])
-          stim_data_sort = rbind(stim_data_sort, mean_values[inh_pos, measured_nodes,drop=F])
-          cv_sort = rbind(cv_sort, cv_values[inh_pos, measured_nodes,drop=F])
-          inh_sort = rbind(inh_sort, inhibitor[inh_pos, ,drop=F])
-        }
-      }
-    }
-
-    if (rearrange == "byinhib") { # Re-invert the variables that are used later
-      tmp = stim_sort
-      stim_sort = inh_sort
-      inh_sort = tmp
-    }
-  } else {
-    if (!rearrange %in% c("n", "no", "")) {
-        warning(paste0("Unknown option '", rearrange, "' for the arrangement of the perturbations, interpreted as 'no'"))
-    }
-    stim_sort = as.matrix(stimuli)
-    inh_sort = as.matrix(inhibitor)
-    stim_data_sort = mean_values[,measured_nodes, drop=FALSE]
-    cv_sort = cv_values[,measured_nodes, drop=FALSE]
-    error_sort = error[,measured_nodes, drop=FALSE]
-  }
+  stim_sort = as.matrix(stimuli)
+  inh_sort = as.matrix(inhibitor)
+  stim_data_sort = mean_values[,measured_nodes, drop=FALSE]
+  cv_sort = cv_values[,measured_nodes, drop=FALSE]
+  error_sort = error[,measured_nodes, drop=FALSE]
   
   if (verbose > 3) {
     message("Stimulated nodes")
@@ -1471,7 +1397,7 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
 #' @examples \dontrun{
 #' rebuildModel("model.mra", "data.csv", "data.var")
 #' }
-rebuildModel <- function(model_file, data_file, var_file="", rearrange="no") {
+rebuildModel <- function(model_file, data_file="", var_file="") {
   if(length(model_file)>1){
     model = importModel(file=model_file) # import R object of an read in mra file 
   }else{
@@ -1480,11 +1406,18 @@ rebuildModel <- function(model_file, data_file, var_file="", rearrange="no") {
     }
     model = importModel(model_file)
   }
-  #links = matrix(rep(model$structure$names, 2), ncol=2)
-  core = extractModelCore(model$structure, model$basal, data_file, var_file, model$unused_perturbations, model$unused_readouts, model$min_cv, model$default_cv, rearrange=rearrange, data_space=ifelse(model$use_log, "log", "linear"))
-  
-  model$model$setModel(core$design, core$structure, model$use_log)
-  model = MRAmodel(model$model, core$design, core$structure, model$basal, core$data, core$cv, model$parameters, model$bestfit, model$name, model$infos, model$param_range, model$lower_values, model$upper_values, model$unused_perturbations, model$unused_readouts, model$min_cv, model$default_cv, model$use_log)
+  if (is.string(data_file) && data_file == "") {
+      if (!all(dim(model$data$stim_data) > 1)) {
+          stop("argument 'data_file' is missing, and no data was available in the .mra file")
+      } else {
+      model$model$setModel(model$design, model$structure, model$use_log)
+      model = MRAmodel(model$model, model$design, model$structure, model$basal, model$data, model$cv, model$parameters, model$bestfit, model$name, model$infos, model$param_range, model$lower_values, model$upper_values, model$unused_perturbations, model$unused_readouts, model$min_cv, model$default_cv, model$use_log)
+      }
+  } else {
+      core = extractModelCore(model$structure, model$basal, data_file, var_file, model$unused_perturbations, model$unused_readouts, model$min_cv, model$default_cv, data_space=ifelse(model$use_log, "log", "linear"))
+      model$model$setModel(core$design, core$structure, model$use_log)
+      model = MRAmodel(model$model, core$design, core$structure, model$basal, core$data, core$cv, model$parameters, model$bestfit, model$name, model$infos, model$param_range, model$lower_values, model$upper_values, model$unused_perturbations, model$unused_readouts, model$min_cv, model$default_cv, model$use_log)
+    }
   
   return(model)
 }
@@ -1503,7 +1436,7 @@ rebuildModel <- function(model_file, data_file, var_file="", rearrange="no") {
 #' @examples \dontrun{
 #' rebuildModelSet(c("model1.mra",model2.mra), c("data1.csv","data2.csv"), c("data1.var","data2.var"))
 #' }
-rebuildModelSet <- function(model_files, data_files, var_files=c(), rearrange="no") {
+rebuildModelSet <- function(model_files, data_files, var_files=c()) {
   # check size
   if (length(model_files)!= length(data_files)){ stop("Number of model files and data files is not equal!") }
   # check for bijection and rearrange if needed
@@ -1545,9 +1478,9 @@ rebuildModelSet <- function(model_files, data_files, var_files=c(), rearrange="n
   nb_models = length(model_files)
   alt_names = c()
   if (length(var_files)>0){
-    model1 = rebuildModel(model_files[[1]], data_files[[1]], var_files[[1]], rearrange)  
+    model1 = rebuildModel(model_files[[1]], data_files[[1]], var_files[[1]])
   }else{
-    model1 = rebuildModel(model_files[[1]], data_files[[1]], "", rearrange)
+    model1 = rebuildModel(model_files[[1]], data_files[[1]], "")
   }
   alt_names = c(alt_names, model1$name)
   data_ = new(STASNet:::DataSet)
@@ -1562,9 +1495,9 @@ rebuildModelSet <- function(model_files, data_files, var_files=c(), rearrange="n
   
   for (ii in 2:nb_models){
     if(length(var_files)>0){
-      model=rebuildModel(model_files[[ii]], data_files[[ii]], var_files[[ii]], rearrange)
+      model=rebuildModel(model_files[[ii]], data_files[[ii]], var_files[[ii]])
     }else{
-      model=rebuildModel(model_files[[ii]], data_files[[ii]], "", rearrange)  
+      model=rebuildModel(model_files[[ii]], data_files[[ii]], "") 
     }
     alt_names = c(alt_names, model$name)
     data_$addData(model$data, FALSE)

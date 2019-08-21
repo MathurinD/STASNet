@@ -47,10 +47,11 @@ printParameters <- function(model_description, precision=2) {
 #' @param model_description An MRAmodel object
 #' @param limit An integer to force the limit of the heatmaps
 #' @param show_values Whether the values should be printed in the heatmap boxes or not.
-#' @param graphs Define which graphs should be plotted. "accuracy" for the residual as seen by the model, "diff" for the delta log data-simulation, "data" for the log-fold change computed from the data, "simulation" for the log-fold change simulated by the model, "prediction" for the log-fold change that would be predicted without the blank correction.
+#' @param graphs Define which graphs should be plotted. "accuracy" for the residual as seen by the model, "qq" for the qqnorm plot of those residuals, "diff" for the delta log data-simulation, "data" for the log-fold change computed from the data, "simulation" for the log-fold change simulated by the model, "prediction" for the log-fold change that would be predicted without the blank correction.
 #' @param selected_treatments A vector with the names of the subset of treatments that should be plotted
 #' @param selected_readouts A vector with the names of the subset of readouts that should be plotted
 #' @param name The name of the model, used as subtitle in the plot
+#' @param regroup A value in c('inhib', 'stim') which indicates if the data should be regrouped by inhibition or stimulation in the heatmap
 #' @return Invisibly, a list with elements 'mismatch', 'stim_data' and 'simulation' corresponding to the values plotted.
 #' @export
 #' @seealso createModel, importModel
@@ -61,7 +62,7 @@ plotModelAccuracy <- function(x, ...) { UseMethod("plotModelAccuracy", x) }
 #' Plot model accuracy for MRAmodel
 #' @export
 #' @rdname accuracy_plot
-plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values=TRUE, graphs=c("accuracy", "diff", "data", "simulation", "prediction"), selected_treatments = c(), selected_readouts = c(), name="") {
+plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values=TRUE, graphs=c("accuracy", "diff", "data", "simulation", "prediction"), selected_treatments = c(), selected_readouts = c(), name="", regroup="no") {
   # Calculate the mismatch
   model = model_description$model
   data = model_description$data
@@ -101,6 +102,18 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
   colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) = nodes[design$measured_nodes + 1]
   rownames(mismatch) = rownames(stim_data) = rownames(simulation) = rownames(prediction) = treatments
 
+  if (regroup %in% c("stim", "inhib")) {
+      if (regroup == "stim") {
+          reorder = order(apply(cbind(design$stimuli, design$inhibitor), 1, paste0, collapse="_"), decreasing=TRUE)
+      } else {
+          reorder = order(apply(cbind(design$inhibitor, design$stimuli), 1, paste0, collapse="_"), decreasing=TRUE)
+      }
+      mismatch = mismatch[reorder,]
+      stim_data = stim_data[reorder,]
+      simulation = simulation[reorder,]
+      prediction = prediction[reorder,]
+  }
+
   # Subset the matrices to only have the select readouts and treatments
   if (length(selected_readouts) > 0) {
       valid_selection = c()
@@ -109,10 +122,10 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
               valid_selection = c(valid_selection, sr)
           }
       }
-      mismatch = mismatch[,valid_selection]
-      stim_data = stim_data[,valid_selection]
-      simulation = simulation[,valid_selection]
-      prediction = prediction[,valid_selection]
+      mismatch = mismatch[,valid_selection,drop=FALSE]
+      stim_data = stim_data[,valid_selection,drop=FALSE]
+      simulation = simulation[,valid_selection,drop=FALSE]
+      prediction = prediction[,valid_selection,drop=FALSE]
   }
   if (length(selected_treatments) > 0) {
       valid_selection = c()
@@ -121,13 +134,18 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
               valid_selection = c(valid_selection, st)
           }
       }
-      mismatch = mismatch[valid_selection,]
-      stim_data = stim_data[valid_selection,]
-      simulation = simulation[valid_selection,]
-      prediction = prediction[valid_selection,]
+      mismatch = mismatch[valid_selection,,drop=FALSE]
+      stim_data = stim_data[valid_selection,,drop=FALSE]
+      simulation = simulation[valid_selection,,drop=FALSE]
+      prediction = prediction[valid_selection,,drop=FALSE]
   }
 
 # Comparison of the data and the stimulation in term of error fold change and log fold change
+  if (any(grepl("qq", graphs))) {
+      qqnorm(mismatch)
+      mis_range = max(abs(range(mismatch, na.rm=TRUE)))
+      lines(c(-mis_range, mis_range), c(-mis_range, mis_range), col="red")
+  }
   if (any(grepl("acc", graphs)))
       plotHeatmap(mismatch,"(data - simulation) / error", show_values=show_values, lim=2, fixedRange=TRUE, sub=name)
   if (any(grepl("diff", graphs)))
@@ -375,8 +393,9 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
 #' @param parallel Boolean number indicating whether addition is executed in a parallel fashion
 #' @param mc Number of cores that should be used for the computation
 #' @param sample_range Numeric vector containing all starting values for the new link (DEFAULT: c(10^(2:-1),0,-10^(-1:2)))
-#' @param print Boolean indicating whether the result should be printed in a text file "Additional_link_suggestion.txt"
 #' @param padjust_method The method to use for the adjusted p-value, as defined in p.adjust. 'BY' by default which provides the FDR under general dependence assumption (conservative)
+#' @param print Boolean indicating whether the result should be printed in a text file "Additional_link_suggestion.txt"
+#' @param fname Name of the file where the results should be printed
 #' @name suggestExtension
 #' @export
 #' @seealso selectMinimalModel, createModel
@@ -384,7 +403,7 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
 #' @examples \dontrun{
 #' ext_list = suggestExtension(mramodel)
 #' }
-suggestExtension <- function(original_model,parallel = F, mc = 1, sample_range=c(10^(2:-1),0,-10^(-1:2)), print = F, padjust_method="bonferroni"){
+suggestExtension <- function(original_model,parallel = F, mc = 1, sample_range=c(10^(2:-1),0,-10^(-1:2)), padjust_method="bonferroni", print = F, fname="Additional_link_suggestion.txt"){
   if (mc == 0) {
       mc = detectCores() - 1
   }
@@ -460,7 +479,7 @@ suggestExtension <- function(original_model,parallel = F, mc = 1, sample_range=c
     }
   }
   if(print)
-    write.table(extension_mat,"Additional_link_suggestion.txt",quote = F,row.names = F,sep="\t")
+    write.table(extension_mat, fname, quote = F,row.names = F,sep="\t")
   
   return(extension_mat)
   
@@ -586,7 +605,7 @@ testModel <- function(mra_model, new_parameters, refit_model=FALSE) {
 #'
 #' Refit the model with a specified parameter set while keeping parameters constant
 #' @param mra_model A MRAmodel object
-#' @param parameter_set A vector of values used as parameters for the model. There must be a many values as there are parameters, or one that will be used for all parameters.
+#' @param parameter_set A vector of values used as parameters for the model. There must be as many values as there are parameters, or one that will be used for all parameters.
 #' @param vary_param A vector of index or name of the parameters to refit, the others will be kept constant. Repetitions or redundant information (index and name designating the same parameter) are removed.
 #' @param inits Number of random initialisations for the variable parameters
 #' @param nb_cores Number of processes to use for the refitting. 0 to use all cores of the machines but one.
@@ -606,7 +625,7 @@ refitModel <- function(mra_model, parameter_set=c(), vary_param=c(), inits=100, 
         stop("Incompatible 'parameter_set', wrong number of parameters in 'refitModel'")
     }
     if (length(vary_param) == 0) {
-        return(computeFitScore(mra_model, TRUE))
+        stop("No parameters to vary ('vary_param==c()') in 'refitModel', use 'computeFitScore' if you just want to recompute the model scores")
     }
     if (nb_cores == 0) {
         nb_cores = detectCores()-1
@@ -633,10 +652,11 @@ refitModel <- function(mra_model, parameter_set=c(), vary_param=c(), inits=100, 
     }
     results = parallel_initialisation(mra_model$model, mra_model$data, init_pset, nb_cores, keep_constant)
     order_id = order(results$residuals)
-    plot(1:length(order_id), results$residuals[order_id], ylab="Likelihood", xlab="rank", main=paste0("Residuals ", fit_name), log="y")
+    residuals_plot(results$residuals, fit_name)
 
     new_model = cloneModel(mra_model) 
     new_model$parameters = results$params[order_id[1],]
+    new_model$bestfit = results$residuals[order_id[1]]
     new_model$infos = c(new_model$infos, paste0("Refitted with variable parameters c(", pastecoma(vary_param), ")") )
     if (fit_name != "") { new_model$name = fit_name }
     return( computeFitScore(new_model, FALSE) )
