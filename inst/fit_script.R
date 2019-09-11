@@ -209,7 +209,7 @@ if (recomputing) {
 
     mat=model$data$stim_data
     pdf(file.path(folder, paste0("accuracy_heatmap_", conditions, ".pdf")),onefile=T,width =5+ncol(mat)/3,height=4+nrow(mat)/6)
-    plotModelAccuracy(model)
+    plotModelAccuracy(model,graphs = c("accuracy", "diff", "data", "simulation", "prediction","q"))
     plotModelScores(model, main=paste0("Global R = ", model$bestfitscore))
     dev.off()
     printParameters(model)
@@ -217,7 +217,7 @@ if (recomputing) {
 if (plot_accuracy) {
     mat=model$data$stim_data
     pdf(file.path(folder, paste0("l", limit, "_accuracy_heatmap_", conditions, ".pdf")),onefile=T,width =5+ncol(mat)/3,height=4+nrow(mat)/6)
-    plotModelAccuracy(model, limit, show_values)
+    plotModelAccuracy(model, limit = limit, show_values = T, graphs = c("accuracy", "diff", "data", "simulation", "prediction","qq"))
     dev.off()
 }
 

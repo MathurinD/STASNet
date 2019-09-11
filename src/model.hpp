@@ -33,6 +33,7 @@
 #include "helper_types.hpp"
 #include "rref.hpp"
 #include "modelstructure.hpp"
+#include <Eigen/Dense> 			// for Eigenvalue calculations
 
 class Model {
 public:
@@ -97,6 +98,9 @@ public:
   const ExperimentalDesign &exp_design() const { return exp_design_; }
 
   double getPeneltyForConstraints(const double *p) const;
+
+  double getMaxEigenvalue(const double *p) const;
+
   void getConstraints( parameterlist &params, std::vector<MathTree::math_item::Ptr> &equations);
 
 
