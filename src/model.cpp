@@ -20,6 +20,7 @@
 
 #include "model.hpp"
 #include "fstream"
+#include "Eigen/Dense" 			// for Eigenvalue calculations
 
 extern bool debug;
 extern int verbosity;
@@ -395,8 +396,8 @@ double Model::getMaxEigenvalue(const double *p) const{
     	std::vector<double> fit_inh;
     	std::vector<double> p_new;
     	{
-      		model->convert_identifiables_to_original_parameter( p_new, p_id );
-      		model->convert_original_parameter_to_response_matrix( fit_response_matrix, fit_inh, p_new);
+      		convert_identifiables_to_original_parameter( p_new, p_id );
+      		convert_original_parameter_to_response_matrix( fit_response_matrix, fit_inh, p_new);
     	}
 	size_t rows=fit_response_matrix.shape()[0], cols=fit_response_matrix.shape()[1];
 
@@ -475,7 +476,7 @@ void Model::eval(const double *p,double *datax, const Data *data ) const {
     }
         
     //double penelty=getPeneltyForConstraints(p);
-    double max_eigenvalue = getMaxEigenValue(p);
+    double max_eigenvalue = getMaxEigenvalue(p);
     for (unsigned int i=0; i<cols;i++) { 
         for (unsigned int j=0; j<rows;j++) {
             //if (penelty>1) {
@@ -877,7 +878,7 @@ void Model::printSymbols() {
 void Model::convert_original_parameter_to_response_matrix( 
     double_matrix &d, 
     std::vector<double> &inh, 
-    const std::vector<double> &p) 
+    const std::vector<double> &p) const
 {
     size_t counter=0;
     const int_matrix adj = structure_.getAdjacencyMatrix();
