@@ -33,6 +33,9 @@ modelGroup <- function(models=list()) {
         links = unique(c(links, model$model$getParametersLinks()))
         names = c(names, model$name)
     }
+    if (is.list(models) && !is.null(names(models))) {
+        names = names(models)
+    }
     names(scores) = names
     names(residuals) = names
     for (ii in 1:length(links)) {

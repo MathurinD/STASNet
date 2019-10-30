@@ -81,7 +81,7 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
   if (name == "") { name = model_description$name }
   
   simulation = model$simulateWithOffset(data, init_params)$prediction
-  prediction = log2(model$simulate(data, init_params)$prediction / data$unstim_data)
+  prediction = log2(model$simulate(data, init_params)$prediction / data$m_data)
   if (model_description$use_log) {
       mismatch = (log(stim_data) - log(simulation)) / (log(error)*sqrt(2))
   } else {
@@ -90,24 +90,13 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
   simulation = log2(simulation / data$unstim_data)
   stim_data = log2(stim_data / data$unstim_data)
   
-  # Rebuild the conditions from the design
-  nodes = model_description$structure$names
-  design = model_description$design
-  treatments = c()
-  for (row in 1:nrow(mismatch)) {
-    stim_names = nodes[design$stim_nodes[which(design$stimuli[row,]==1)]+1]
-    inhib_names = nodes[design$inhib_nodes[which(design$inhibitor[row,]==1)]+1]
-    if (length(inhib_names) > 0) {
-      inhib_names = paste(inhib_names, "i", sep="")
-    }
-    treatments = c(treatments, paste(c(stim_names, inhib_names), collapse="+", sep="") )
-  }
+  treatments = getModelPerturbations(model_description)
 
   if (verbose > 3) {
       message("Treatments : ")
       message(paste(treatments, collapse=" "))
   }
-  colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) = nodes[design$measured_nodes + 1]
+  colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) = getModelReadouts(model_description)
   rownames(mismatch) = rownames(stim_data) = rownames(simulation) = rownames(prediction) = treatments
 
   if (regroup %in% c("stim", "inhib")) {
@@ -226,13 +215,14 @@ plotModelAccuracy.MRAmodelSet <- function(model_description, limit=Inf, show_val
 #' @rdname get_model_helpers
 getModelMismatch <- function(mra_model) {
     simulation = simulateModel(mra_model)$bestfit
+    prediction = log2(model$simulate(data, init_params)$prediction / data$unstim_data)
     mismatch = (mra_model$data$stim_data - simulation) / (mra_model$data$error*sqrt(2))
     residual = sum(mismatch^2, na.rm=T)
 
-    colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) = getModelReadouts(mra_model)
-    rownames(mismatch) = rownames(stim_data) = rownames(simulation) = rownames(prediction) = getModelPerturbations(mra_model)
+    colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) =  getModelReadouts(mra_model)
+    rownames(mismatch) = rownames(stim_data) = rownames(simulation)= rownames(prediction) = getModelPerturbations(mra_model)
 
-    return(list(simulation=simulation, mismatch=mismatch, residual=residual))
+    return(list(simulation=simulation, mismatch=mismatch, residual=residual, prediction=prediction))
 }
 
 #' Plot the scores of each antibody
