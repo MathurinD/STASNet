@@ -13,7 +13,7 @@
 #' @export
 #' @family Network graph
 #' @author Bertram Klinger \email{bertram.klinger@@charite.de}
-plotNetworkGraph <- function(structure, expdes="", local_values="", print_values=TRUE, scaling=5, max_width=3, min_width=1) {
+plotNetworkGraph <- function(structure, expdes="", local_values="", print_values=TRUE, scaling=5, max_width=3, min_width=1, main="", sub="") {
     if (class(structure) == "matrix") {
       ss = extractStructure(structure)
       adm = ss$adjacencyMatrix
@@ -112,6 +112,7 @@ plotNetworkGraph <- function(structure, expdes="", local_values="", print_values
     }
   }
   
+  graphRenderInfo(g1) <- list(main=main, sub=sub)
   Rgraphviz::renderGraph(g1)
 # other options to use the width and height howver the coordinates are not thes same in the generated graph!!  
 #  if (length(expdes$inhib_nodes)>0){
