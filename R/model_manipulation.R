@@ -67,6 +67,7 @@ printParameters <- function(model_description, precision=2) {
 #' @rdname accuracy_plot
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
 plotModelAccuracy <- function(x, ...) { UseMethod("plotModelAccuracy", x) }
+
 #' Plot model accuracy for MRAmodel
 #' @export
 #' @rdname accuracy_plot
@@ -81,7 +82,11 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
   if (name == "") { name = model_description$name }
   
   simulation = model$simulateWithOffset(data, init_params)$prediction
-  prediction = log2(model$simulate(data, init_params)$prediction / data$m_data)
+  prediction = log2(model$simulate(data, init_params)$prediction / data$stim_data)
+  datasim = getModelMismatch(model_description)
+  #mismatch = datasim$mismatch
+  #simulation = datasim$simulation
+  #stim_data = datasim$data
   if (model_description$use_log) {
       mismatch = (log(stim_data) - log(simulation)) / (log(error)*sqrt(2))
   } else {
@@ -145,7 +150,7 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
     if (!is.infinite(limit)) { lim = limit }
     for (entry in graphs) {
         if (grepl("qq", entry)) {
-            qqnorm(mismatch)
+            qqnorm(mismatch, main=name)
             mis_range = max(abs(range(mismatch, na.rm=TRUE)))
             lines(c(-mis_range, mis_range), c(-mis_range, mis_range), col="red")
         } else if (grepl("acc", entry)) {
@@ -214,15 +219,21 @@ plotModelAccuracy.MRAmodelSet <- function(model_description, limit=Inf, show_val
 #' @export
 #' @rdname get_model_helpers
 getModelMismatch <- function(mra_model) {
-    simulation = simulateModel(mra_model)$bestfit
-    prediction = log2(model$simulate(data, init_params)$prediction / data$unstim_data)
-    mismatch = (mra_model$data$stim_data - simulation) / (mra_model$data$error*sqrt(2))
+    simulation = simulateModel(mra_model)$bestfit # TODO check why different from simulation = model$simulateWithOffset(data, init_params)$prediction
+    stim_data = mra_model$data$stim_data
+    error = mra_model$data$error
+#    prediction = log2(mra_model$model$simulate(data, init_params)$prediction / data$unstim_data)
+    if (mra_model$use_log) {
+        mismatch = (log(stim_data) - log(simulation)) / (log(error)*sqrt(2))
+    } else {
+        mismatch = (stim_data - simulation) / (error*sqrt(2))
+    }
     residual = sum(mismatch^2, na.rm=T)
 
-    colnames(mismatch) = colnames(stim_data) = colnames(simulation) = colnames(prediction) =  getModelReadouts(mra_model)
-    rownames(mismatch) = rownames(stim_data) = rownames(simulation)= rownames(prediction) = getModelPerturbations(mra_model)
+    colnames(mismatch) = colnames(stim_data) = colnames(simulation) =  getModelReadouts(mra_model) # = colnames(prediction)
+    rownames(mismatch) = rownames(stim_data) = rownames(simulation) = getModelPerturbations(mra_model) # = rownames(prediction)
 
-    return(list(simulation=simulation, mismatch=mismatch, residual=residual, prediction=prediction))
+    return(list(simulation=simulation, data=log2(stim_data / mra_model$data$unstim_data), mismatch=mismatch, residual=residual)) #, prediction=prediction
 }
 
 #' Plot the scores of each antibody

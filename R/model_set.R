@@ -83,6 +83,7 @@ compareParameters.modelGroup <- function(modelgroup, do_plot=TRUE) {
 #' @param nb_models Number of models in the set
 #' @inheritParams MRAmodel
 #' @return An MRAmodelSet object
+#' @export
 #' @seealso \code{\link{createModel}}
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
 MRAmodelSet <- function(nb_models=1, model=NULL, design=NULL, structure=NULL, basal=matrix(), data=matrix(), cv=matrix(), parameters=vector(), bestfit=NA, name=c(), infos=c(), param_range=list(), lower_values=c(), upper_values=c(), unused_perturbations=c(), unused_readouts=c(), min_cv=0.1, default_cv=0.3, use_log=FALSE) {

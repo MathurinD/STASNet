@@ -5,7 +5,7 @@
 \title{Plot the network used in the model}
 \usage{
 plotModelGraph(mra_model, print_values = TRUE, scaling = 5,
-  max_width = 3, min_width = 1)
+  max_width = 3, min_width = 1, main = "")
 }
 \arguments{
 \item{mra_model}{A MRAmodel object.}

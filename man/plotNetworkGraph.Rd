@@ -5,7 +5,8 @@
 \title{Plot a graph from an adjacency list}
 \usage{
 plotNetworkGraph(structure, expdes = "", local_values = "",
-  print_values = TRUE, scaling = 5, max_width = 3, min_width = 1)
+  print_values = TRUE, scaling = 5, max_width = 3, min_width = 1,
+  main = "", sub = "")
 }
 \arguments{
 \item{structure}{A 2-columns matrix or a ModelStructure object. The network as an adjacency list, the first column is the upstream nodes, the second column the downstream nodes. Or a ModelStructure object as returned by getModelStructure.}

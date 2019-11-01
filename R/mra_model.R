@@ -23,6 +23,7 @@
 #' @param unused_readouts Readouts from the data file that have not been used for the fitting
 #' @return An MRAmodel object
 #' @seealso \code{\link{createModel}}
+#' @export
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
 MRAmodel <- function(model, design, structure, basal=matrix(), data=matrix(), cv=matrix(), parameters=vector(), bestfit=NA, name="", infos=c(), param_range=list(), lower_values=c(), upper_values=c(), unused_perturbations=c(), unused_readouts=c(), min_cv=0.1, default_cv=0.3, use_log=TRUE) {
 
@@ -141,7 +142,7 @@ plotModelGraph <- function(mra_model, print_values=TRUE, scaling=5, max_width=3,
     if (main == "") {
         main = mra_model$name
     }
-    plotNetworkGraph(mra_model$structure, mra_model$design, mra_model$model$getLocalResponseFromParameter(mra_model$parameters), print_values, scaling=5, max_width=3, min_width=1, main="")
+    plotNetworkGraph(mra_model$structure, mra_model$design, mra_model$model$getLocalResponseFromParameter(mra_model$parameters), print_values, scaling=5, max_width=3, min_width=1, main=main)
 }
 
 #' Return the paths corresponding to each parameter
