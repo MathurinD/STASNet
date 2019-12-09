@@ -202,6 +202,11 @@ if (recomputing) {
     dev.off()
     get_running_time(init_time, paste("to build the model with", inits, "initialisations."))
 
+    model$model$getLocalResponseFromParameter(model$parameters)$local_response-> r # actually an adjacency matrix with values
+    diag(r) = -1
+    
+    print(paste("Max Eigenvalue of r:",STASNet:::trim_num(max(Re(eigen(r)$values)),2)))
+    
     # Plot the graph of the network in a pdf
     pdf(file.path( folder, paste0("graph_", gsub(" ", "_", gsub(".tab$", ".pdf", basename(network)) ) )))
     plotModelGraph(model)

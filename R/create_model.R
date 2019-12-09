@@ -386,7 +386,7 @@ addVariableParameters <- function(original_modelset, nb_cores=0, max_iterations=
         psets=sapply(modelset$variable_parameters,refitWithFixedParameter,modelset,nb_sub_params,nb_cores,nb_samples)
         bestres = min(unlist(psets["residuals",]))
         deltares = bestres - modelset$bestfit
-        if (deltares < qchisq(accuracy, modelset$nb_models) ) {
+        if (deltares < qchisq(accuracy, modelset$nb_models-1) ) {
           res_id = which.min(unlist(psets["residuals",]))
           par_id = psets["removed_var",ceiling(res_id/nb_samples)][[1]]
           new_parameters=unlist(psets["params",ceiling(res_id/nb_samples)][[1]][ifelse(res_id %% nb_samples==0,nb_samples,res_id %% nb_samples),])
