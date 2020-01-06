@@ -4,8 +4,14 @@
 \alias{plotModelGraph}
 \title{Plot the network used in the model}
 \usage{
-plotModelGraph(mra_model, print_values = TRUE, scaling = 5,
-  max_width = 3, min_width = 1, main = "")
+plotModelGraph(
+  mra_model,
+  print_values = TRUE,
+  scaling = 5,
+  max_width = 3,
+  min_width = 1,
+  main = ""
+)
 }
 \arguments{
 \item{mra_model}{A MRAmodel object.}
@@ -16,12 +22,15 @@ plotModelGraph(mra_model, print_values = TRUE, scaling = 5,
 Plot the network used in the model with the experimental design on top of it
 }
 \seealso{
-Other Model plots: \code{\link{plotModelAccuracy}},
-  \code{\link{plotModelScores.MRAmodel}},
-  \code{\link{plotModelScores}},
-  \code{\link{plotParameters}}, \code{\link{plotResiduals}}
+Other Model plots: 
+\code{\link{plotModelAccuracy}()},
+\code{\link{plotModelScores.MRAmodel}()},
+\code{\link{plotModelScores}()},
+\code{\link{plotParameters}()},
+\code{\link{plotResiduals}()}
 
-Other Network graph: \code{\link{plotNetworkGraph}}
+Other Network graph: 
+\code{\link{plotNetworkGraph}()}
 }
 \author{
 Mathurin Dorel \email{dorel@horus.ens.fr}

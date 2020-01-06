@@ -217,6 +217,7 @@ printDirectPaths <- function(mra_model, digits=2) {
 #' @export
 aggregateDirectPaths <- function(direct_paths){
     if (!is.list(direct_paths)) { stop("'direct_paths' must be a list") }
+    if (names(direct_paths[[1]])[1] == "path") { direct_paths = list("one_model"=direct_paths) } # Trick to accept one set of direct path as argument
     if (is.null(names(direct_paths))) { stop("'names(direct_paths)' must be non NULL for the aggregation") }
     aggregated_paths = c()
     paths_per_model = c()

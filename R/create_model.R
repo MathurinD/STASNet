@@ -60,8 +60,9 @@ not_duplicated <- function(x){
   return(!all(tmp[-1]))
 }
 
-#' Creates and fits a parameterised model from experimental data, network structure and basal activity information.
+#' Create and fit a parameterised model
 #'
+#' Create and fit a parameterised model from experimental data, network structure and basal activity information.
 #' @param model_links Path to the file containing the network structure, either in matrix form or in list of links form. Extension .tab expected
 #' @param basal_file Path to the file indicating the nodes with basal activity. Extension .dat expected.
 #' @param data.stimulation Path to the file containing the data in MRA_MIDAS format. Extension .csv expected.
@@ -95,7 +96,7 @@ not_duplicated <- function(x){
 #' }
 #' @family Model initialisation
 # TODO completely remove examples or add datafile so they work (or use data matrices)
-createModel <- function(model_links, basal_file, data.stimulation, data.variation="", nb_cores=1, inits=1000, perform_plots=F, precorrelate=T, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", optimizer="levmar", data_space="linear") {
+createModel <- function(model_links, basal_file, data.stimulation, data.variation="", nb_cores=1, inits=1000, perform_plots=F, precorrelate=T, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="", optimizer="levmar", data_space="linear") {
   # Creation of the model structure object
   model_structure = extractStructure(model_links)
   basal_activity = extractBasalActivity(basal_file)
@@ -193,7 +194,7 @@ createModel <- function(model_links, basal_file, data.stimulation, data.variatio
 #' @inheritParams createModel
 #' @export
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr}
-createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb_cores=1, inits=1000, perform_plots=F, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="default", optimizer="levmar", data_space="linear") {
+createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb_cores=1, inits=1000, perform_plots=F, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="", optimizer="levmar", data_space="linear") {
   if (length(csv_files) != length(var_files)) {
     if (length(var_files) == 0) {
       var_files = rep("", length(csv_files))

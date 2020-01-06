@@ -5,8 +5,7 @@
 \title{Plots the functional relations between each non-identifiable parameter and the profile likelihood of all parameters
 and redirect it in a pdf file.}
 \usage{
-niplotPL(profiles, data_name = "default", folder = "./",
-  file_plots = TRUE)
+niplotPL(profiles, data_name = "default", folder = "./", file_plots = TRUE)
 }
 \arguments{
 \item{profiles}{A list of the likelihood profiles of the parameters of the model}
