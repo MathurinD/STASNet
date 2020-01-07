@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_model.R
 \name{createModel}
 \alias{createModel}
-\title{Creates and fits a parameterised model from experimental data, network structure and basal activity information.}
+\title{Create and fit a parameterised model}
 \usage{
 createModel(
   model_links,
@@ -36,7 +36,7 @@ createModel(
 
 \item{inits}{Number of initialisation steps which should be performed (see method for the exact meaning of this value)}
 
-\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not}
+\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")}
 
 \item{precorrelate}{Whether to infer some links using a linear model instead of a random initialisation}
 
@@ -64,7 +64,7 @@ annealing : Simulated annealing and gradient descent on the best result. \emph{i
 An MRAmodel object describing the model and its best fit, containing the data
 }
 \description{
-Creates and fits a parameterised model from experimental data, network structure and basal activity information.
+Create and fit a parameterised model from experimental data, network structure and basal activity information.
 }
 \examples{
 \dontrun{

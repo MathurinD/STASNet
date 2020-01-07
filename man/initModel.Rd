@@ -28,7 +28,7 @@ initModel(
 
 \item{nb_cores}{Maximum number of cores to use for the initialisation}
 
-\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not}
+\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")}
 
 \item{optimizer}{One of c('levmar', 'siman') to choose whether the optimizer should use the Levenberg-Marquardt algorithm or Simulated Annealing.}
 }

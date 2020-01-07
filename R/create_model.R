@@ -70,7 +70,7 @@ not_duplicated <- function(x){
 #' @param data.variation Path to the file containing the coefficient of variation for each measurement in MRA_MIDAS format. If it is not provided, the function uses the replicates of the data.stimulation file to determine a variance per probe (i.e antibody/DNA fragment/...). Extension .var expected.
 #' @param nb_cores Number of cores that should be used for the computation
 #' @param inits Number of initialisation steps which should be performed (see method for the exact meaning of this value)
-#' @param perform_plots Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not
+#' @param perform_plots Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")
 #' @param precorrelate Whether to infer some links using a linear model instead of a random initialisation
 #' @param method Method to be used for the initialisation, available methods are :
 #'      random : Perform a Latin Hypercube Sampling to choose \emph{inits} starting points then perform a gradient descent to find the local optimum for each of those points.
@@ -152,7 +152,7 @@ createModel <- function(model_links, basal_file, data.stimulation, data.variatio
     message(paste0(trim_num(sort(residuals)[1:20],behind_comma = 4), collapse=" "))
   }
 
-  if (perform_plots) { # Best residuals to check the convergence of the fitting procedure
+  if (perform_plots[1] == TRUE || "residuals" %in% perform_plots) { # Best residuals to check the convergence of the fitting procedure
       residuals_plot(residuals, model_name)
   }
   
@@ -164,7 +164,7 @@ createModel <- function(model_links, basal_file, data.stimulation, data.variatio
       setii = params[best_sets,ii] 
       setjj = params[best_sets,jj]
       cij = suppressWarnings(cor(setii, setjj, use="na.or.complete")) # NA if one vector has a standard deviation of 0
-      if (perform_plots) {
+      if (perform_plots[1] == TRUE || "correlations" %in% perform_plots) {
           if ((!is.na(cij) && cij > 0.999) || (range_var(setii) > 0.05 && range_var(setjj) > 0.05)) {
             plot(setii, setjj, xlab=paths[ii], ylab=paths[jj], main=paste0("Values for the best fits\nscore=", cij), col=residuals[best_sets])
           }
@@ -278,7 +278,7 @@ createModelSet <- function(model_links, basal_file, csv_files, var_files=c(), nb
     message("Best residuals :")
     message(paste0(trim_num(sort(residuals)[1:20],behind_comma = 4), collapse=" "))
   }
-  if (perform_plots) {
+  if (perform_plots[1] == TRUE || "residuals" %in% perform_plots) {
       residuals_plot(residuals, model_name)
   }
   
@@ -491,7 +491,7 @@ refitWithFixedParameter <- function(var_par, modelset, nb_sub_params, nb_cores=0
 #' @param precorrelate Whether the parameters should be precorrelated
 #' @param method The LHS method to use to generate the random samples
 #' @param nb_cores Maximum number of cores to use for the initialisation
-#' @param perform_plots Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not
+#' @param perform_plots Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")
 #' @param optimizer One of c('levmar', 'siman') to choose whether the optimizer should use the Levenberg-Marquardt algorithm or Simulated Annealing.
 #' @return A list with the initialisation results
 #' @family Model initialisation

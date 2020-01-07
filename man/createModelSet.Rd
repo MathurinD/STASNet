@@ -31,7 +31,7 @@ createModelSet(
 
 \item{inits}{Number of initialisation steps which should be performed (see method for the exact meaning of this value)}
 
-\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not}
+\item{perform_plots}{Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")}
 
 \item{method}{Method to be used for the initialisation, available methods are :
 random : Perform a Latin Hypercube Sampling to choose \emph{inits} starting points then perform a gradient descent to find the local optimum for each of those points.
