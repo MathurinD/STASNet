@@ -1290,6 +1290,7 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
 
   # Derive the error either from the CV in linear space or the sd of the log in log space
   if (data_space == "log") {
+    message("data space is set to 'log', computing error solely from the .csv file, ignoring the .var file!")
     error = aggregate(data_values, by=perturbations, linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
     replicates_count = aggregate(cbind(matrix(1, nrow=nrow(perturbations), dimnames=list(NULL,"count")), perturbations)[1], by=perturbations, sum, na.rm=TRUE)
     error = exp( matrix(colMeans(log(error), na.rm=TRUE), nrow=nrow(error), ncol=ncol(error), byrow=TRUE, dimnames=list(rownames(error), colnames(error))) / sqrt(matrix(rep(replicates_count$count, ncol(error)), ncol=ncol(error))) )
