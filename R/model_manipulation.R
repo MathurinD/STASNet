@@ -75,6 +75,7 @@ plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values
   # Calculate the mismatch
   model = model_description$model
   data = model_description$data
+  design = model_description$design
   error = data$error
   cv = model_description$cv
   stim_data = data$stim_data
