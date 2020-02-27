@@ -89,7 +89,7 @@ public:
   void convert_original_parameter_into_identifiable( std::vector<double> &p1, const std::vector<double> &p2 );
   void convert_parameter_map_into_identifiable(std::vector<double> &p1 , const parametermap &p2) ;
   void convert_identifiables_to_original_parameter(std::vector<double> &p_new,  const std::vector<double> &p_old) const;
-  void convert_original_parameter_to_response_matrix(double_matrix &d, std::vector<double> &inh, const std::vector<double> &p);
+  void convert_original_parameter_to_response_matrix(double_matrix &d, std::vector<double> &inh, const std::vector<double> &p) const;
   void convert_response_matrix_to_original_parameter(std::vector<double> &p, const double_matrix &d, const std::vector<double> &inh);
   
   void print_original_parameters(std::ostream &os, std::vector<double> &p);
@@ -97,6 +97,9 @@ public:
   const ExperimentalDesign &exp_design() const { return exp_design_; }
 
   double getPeneltyForConstraints(const double *p) const;
+
+  double getMaxEigenvalue(const double *p) const;
+
   void getConstraints( parameterlist &params, std::vector<MathTree::math_item::Ptr> &equations);
 
 

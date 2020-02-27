@@ -257,7 +257,7 @@ dev.off()
 # 3.2 plot acuracy heatmap
 mat=model$data$stim_data
 pdf(file.path(folder, paste0("accuracy_heatmap_", model$name, ".pdf")),onefile=T,width =5+ncol(mat)/3,height=4+nrow(mat)/6)
-plotModelAccuracy(model)
+plotModelAccuracy(model,graphs = c("accuracy", "diff", "data", "simulation", "prediction","qq"))
 plotModelScores(model, main=paste0("Global R = ", model$bestfitscore))
 dev.off()
 

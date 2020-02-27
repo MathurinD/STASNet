@@ -1,38 +1,4 @@
-# Helper functions for the STASNet package, mostly patch stupid R behaviour
-
-#' Return a data.frame even if the output is one-dimensional
-sub_data_frame <- function(input, rows=NULL, cols=NULL) {
-  output = input
-  if (!is.null(rows)) {
-    ocnames = colnames(output)
-    if (is.character(rows)) {
-      rows = rownames(output) %in% rows
-    }
-    rnames = rownames(output)[rows]
-    output = output[rows,]
-    if (is.null(nrow(output))) {
-      output = as.data.frame(output, row.names=rnames)
-      rownames(output) = rnames
-      colnames(output) = ocnames
-    }
-  }
-
-  if (!is.null(cols)) {
-    ornames = rownames(output)
-    if (is.character(cols)) {
-      cols = colnames(output) %in% cols
-    }
-    cnames = colnames(output)[cols]
-    output = output[,cols]
-    if (is.null(ncol(output))) {
-      output = as.data.frame(output)
-      colnames(output) = cnames
-      rownames(output) = ornames
-    }
-  }
-
-  return(output)
-}
+# Helper functions for the STASNet package
 
 #' Geometric mean
 #'
@@ -50,18 +16,6 @@ geom_mean <- function(xx, na.rm=TRUE) {
     }
 }
 
-#' Log-normal standard deviation
-#'
-#' Compute the standard deviation of a set following a log-normal distribution
-log_norm_sd <- function(xx, na.rm=TRUE) {
-    xx = xx[xx>0]
-    if (length(xx) > 0) {
-        return( exp(sd(log(xx))^2-1) * exp(2*mean(log(xx))+sd(log(xx))^2) )
-    } else {
-        warn("Negative values for log_norm_sd !")
-        return(NA)
-    }
-}
 
 #' Standard deviation of the log
 #'

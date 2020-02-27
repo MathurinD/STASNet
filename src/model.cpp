@@ -20,6 +20,7 @@
 
 #include "model.hpp"
 #include "fstream"
+#include "Eigen/Dense" 			// for Eigenvalue calculations
 
 extern bool debug;
 extern int verbosity;
@@ -386,6 +387,38 @@ double Model::getPeneltyForConstraints(const double *p) const {
     return penelty;
 }
 
+double Model::getMaxEigenvalue(const double *p) const{
+	
+	std::vector<double> p_id(Model::nr_of_parameters());
+    	for (size_t i=0; i< Model::nr_of_parameters(); i++ ) { p_id[i]=p[i]; }	
+
+	double_matrix fit_response_matrix; 
+    	std::vector<double> fit_inh;
+    	std::vector<double> p_new;
+    	{
+      		convert_identifiables_to_original_parameter( p_new, p_id );
+      		convert_original_parameter_to_response_matrix( fit_response_matrix, fit_inh, p_new);
+    	}
+	size_t rows=fit_response_matrix.shape()[0], cols=fit_response_matrix.shape()[1];
+
+	double r[rows*cols];
+    	for (size_t i=0; i<cols; i++){
+        	for (size_t j=0; j<rows; j++){
+			if (i == j) {
+				r[j+cols*i]=-1; // sets the diagonal to-1 
+			} 
+			else {
+	       	     		r[j+cols*i] = fit_response_matrix[j][i];
+			}
+        	}
+    	}
+
+	Eigen::MatrixXd local_r = Eigen::Map<Eigen::MatrixXd>(r, rows, cols ); // convert to Eigen format						
+	Eigen::EigenSolver<Eigen::MatrixXd> es(local_r);				
+	double max_eigenvalue = es.eigenvalues().real().maxCoeff();
+	return(max_eigenvalue);
+}
+
 // Collect the sums to the power of -1 from the GiNaC equation matrix and put them under the mathtree format in a vector (put into constraints_ by do_init)
 void Model::getConstraints( parameterlist &params, std::vector<MathTree::math_item::Ptr> &equations) {
     std::vector<GiNaC::ex> set;
@@ -442,13 +475,18 @@ void Model::eval(const double *p,double *datax, const Data *data ) const {
         parameters_[independent_parameters_[i]]->set_parameter(p[i]);
     }
         
-    double penelty=getPeneltyForConstraints(p);
+    //double penelty=getPeneltyForConstraints(p);
+    double max_eigenvalue = getMaxEigenvalue(p);
     for (unsigned int i=0; i<cols;i++) { 
         for (unsigned int j=0; j<rows;j++) {
             //if (penelty>1) {
             //    // Positive feedback loops create forking, so we eliminate the parameters sets which involve such feedback
             //    datax[i*rows+j] = 100000*penelty*data->stim_data[j][i]/data->error[j][i];
             //} else
+   	     if (max_eigenvalue > -0.0000001) {
+                // Positive feedback loops create forking, so we eliminate the parameters sets which involve self sustaining positive feedbacks
+                datax[i*rows+j] = 10000*(1+abs(max_eigenvalue))*data->stim_data[j][i]/data->error[j][i];
+            } else
             if (linear_approximation_) {
                 datax[i*rows+j]=( data->unstim_data[j][i] + model_eqns_[i*rows+j][0]->eval()*data->scale[j][i])/(sqrt(2) * data->error[j][i]);
             } else if (log_data_) {
@@ -840,7 +878,7 @@ void Model::printSymbols() {
 void Model::convert_original_parameter_to_response_matrix( 
     double_matrix &d, 
     std::vector<double> &inh, 
-    const std::vector<double> &p) 
+    const std::vector<double> &p) const
 {
     size_t counter=0;
     const int_matrix adj = structure_.getAdjacencyMatrix();

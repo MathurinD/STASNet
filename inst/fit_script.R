@@ -198,10 +198,15 @@ if (recomputing) {
     #### Creates the model from network and basal files and fits a minimal model to the data
     init_time = proc.time()["elapsed"];
     pdf(file.path(folder, paste0("distribution_", conditions, ".pdf")))
-    model = createModel(network, basal_nodes, data, variation, inits=inits, nb_cores=cores, perform_plots=perf_plots, method=method, precorrelate=precorrelate, unused_perturbations=unused_perturbations, unused_readouts=unused_readouts, MIN_CV=min_cv, DEFAULT_CV=default_cv, rearrange="no");
+    model = createModel(network, basal_nodes, data, variation, inits=inits, nb_cores=cores, perform_plots=perf_plots, method=method, precorrelate=precorrelate, unused_perturbations=unused_perturbations, unused_readouts=unused_readouts, MIN_CV=min_cv, DEFAULT_CV=default_cv,data_space = "log");
     dev.off()
     get_running_time(init_time, paste("to build the model with", inits, "initialisations."))
 
+    model$model$getLocalResponseFromParameter(model$parameters)$local_response-> r # actually an adjacency matrix with values
+    diag(r) = -1
+    
+    print(paste("Max Eigenvalue of r:",STASNet:::trim_num(max(Re(eigen(r)$values)),2)))
+    
     # Plot the graph of the network in a pdf
     pdf(file.path( folder, paste0("graph_", gsub(" ", "_", gsub(".tab$", ".pdf", basename(network)) ) )))
     plotModelGraph(model)
@@ -209,7 +214,7 @@ if (recomputing) {
 
     mat=model$data$stim_data
     pdf(file.path(folder, paste0("accuracy_heatmap_", conditions, ".pdf")),onefile=T,width =5+ncol(mat)/3,height=4+nrow(mat)/6)
-    plotModelAccuracy(model)
+    plotModelAccuracy(model,graphs = c("accuracy", "diff", "data", "simulation", "prediction","qq"))
     plotModelScores(model, main=paste0("Global R = ", model$bestfitscore))
     dev.off()
     printParameters(model)
@@ -217,7 +222,7 @@ if (recomputing) {
 if (plot_accuracy) {
     mat=model$data$stim_data
     pdf(file.path(folder, paste0("l", limit, "_accuracy_heatmap_", conditions, ".pdf")),onefile=T,width =5+ncol(mat)/3,height=4+nrow(mat)/6)
-    plotModelAccuracy(model, limit, show_values)
+    plotModelAccuracy(model, limit = limit, show_values = T, graphs = c("accuracy", "diff", "data", "simulation", "prediction","qq"))
     dev.off()
 }
 

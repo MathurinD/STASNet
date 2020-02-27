@@ -71,7 +71,7 @@ plotModelAccuracy <- function(x, ...) { UseMethod("plotModelAccuracy", x) }
 #' Plot model accuracy for MRAmodel
 #' @export
 #' @rdname accuracy_plot
-plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values=TRUE, graphs=c("accuracy", "diff", "data", "simulation", "prediction"), selected_treatments = c(), selected_readouts = c(), name="", regroup="no") {
+plotModelAccuracy.MRAmodel <- function(model_description, limit=Inf, show_values=TRUE, graphs=c("accuracy", "diff", "data", "simulation", "prediction","qq"), selected_treatments = c(), selected_readouts = c(), name="", regroup="no") {
   # Calculate the mismatch
   model = model_description$model
   data = model_description$data
