@@ -51,3 +51,51 @@ residuals_plot <- function(residuals, model_name="default") {
         }
     }
 }
+
+# return output-friendlier numbers trimmed by the specified behind_comma and non-zeros  
+trim_num <- function(x, non_zeros=2, behind_comma = 2){
+    if (non_zeros==0){
+        error("number should have a digits reconsider setting non_zeros larger 0!!")
+    }
+    trim_it <- function(x, non_zeros, behind_comma){  
+        if (is.na(x)){ return(x) }
+        
+        if (!is.numeric(x)){ oldx =x; x = as.numeric(as.character(x)) } 
+        
+        if (is.na(x)){ stop(paste("Number or NA expected '", oldx ,"' received as input!")) } 
+        
+        if (abs(x >= 1)){ 
+            newx = round(x*10^behind_comma)/10^behind_comma
+        } else{
+            newx =  signif(x,non_zeros)  
+        }
+        
+        if (nchar(gsub("\\.|-","",as.character(newx))) > max(5,non_zeros+behind_comma)){
+            newx = format(newx, scientific = 0)  
+        }
+        return(newx)
+    }
+    
+    if (is.null(dim(x))){
+        return(sapply(x,"trim_it",non_zeros,behind_comma))
+    }else{
+        newx=sapply(1:ncol(x),function(y) sapply(x[,y],"trim_it",non_zeros,behind_comma))
+        dimnames(newx) <- dimnames(x)
+        return(newx)
+    }
+}
+
+# to estimate running time
+get_running_time <- function(init_time, text="") {
+    run_time = proc.time()["elapsed"]-init_time
+    run_hours = run_time %/% 3600;
+    run_minutes = (run_time - 3600 * run_hours) %/% 60;
+    run_seconds = round(run_time - 3600 * run_hours - 60 * run_minutes,0);
+    return(paste(run_hours, "h", run_minutes, "min", run_seconds, "s", text))
+}
+
+# helper function to determine variable links
+not_duplicated <- function(x){
+    tmp = duplicated(x)
+    return(!all(tmp[-1]))
+}
