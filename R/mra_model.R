@@ -167,7 +167,7 @@ generate_infos <- function(input_file, inits, best_resid, method, model_links, n
         infos$name = name
     } else if ( !is.matrix(input_file) && all(sapply(input_file, is.string)) ) {
       infos$name = gsub("\\.csv", "", gsub("_MIDAS", "", basename(input_file)))
-    } else if (is.list(input_file)) {
+    } else if (is.list(input_file) && names(input_file)[1]!= "ID:type") {
       infos$name = names(input_file)
     } else {
       infos$name = "default"

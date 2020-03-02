@@ -14,53 +14,7 @@
 verbose = 3
 debug = TRUE
 
-get_running_time <- function(init_time, text="") {
-  run_time = proc.time()["elapsed"]-init_time
-  run_hours = run_time %/% 3600;
-  run_minutes = (run_time - 3600 * run_hours) %/% 60;
-  run_seconds = round(run_time - 3600 * run_hours - 60 * run_minutes,0);
-  return(paste(run_hours, "h", run_minutes, "min", run_seconds, "s", text))
-}
-
-trim_num <- function(x, non_zeros=2, behind_comma = 2){
-  if (non_zeros==0){
-    error("number should have a digits reconsider setting non_zeros larger 0!!")
-  }
-trim_it <- function(x, non_zeros, behind_comma){  
-  if (is.na(x)){ return(x) }
-
-  if (!is.numeric(x)){ oldx =x; x = as.numeric(as.character(x)) } 
-
-  if (is.na(x)){ stop(paste("Number or NA expected '", oldx ,"' received as input!")) } 
-  
-  if (abs(x >= 1)){ 
-    newx = round(x*10^behind_comma)/10^behind_comma
-  } else{
-    newx =  signif(x,non_zeros)  
-  }
-
-  if (nchar(gsub("\\.|-","",as.character(newx))) > max(5,non_zeros+behind_comma)){
-    newx = format(newx, scientific = 0)  
-  }
-  return(newx)
-  }
-
-if (is.null(dim(x))){
-  return(sapply(x,"trim_it",non_zeros,behind_comma))
-}else{
- newx=sapply(1:ncol(x),function(y) sapply(x[,y],"trim_it",non_zeros,behind_comma))
- dimnames(newx) <- dimnames(x)
- return(newx)
-}
-}
-
-# helper function to determine variable links
-not_duplicated <- function(x){
-  tmp = duplicated(x)
-  return(!all(tmp[-1]))
-}
-
-#' Create and fit a parameterised model
+#' Creates and fits a parameterised model from experimental data, network structure and basal activity information.
 #'
 #' Create and fit a parameterised model from experimental data, network structure and basal activity information.
 #' @param model_links Path to the file containing the network structure, either in matrix form or in list of links form. Extension .tab expected
@@ -96,12 +50,35 @@ not_duplicated <- function(x){
 #' }
 #' @family Model initialisation
 # TODO completely remove examples or add datafile so they work (or use data matrices)
-createModel <- function(model_links, basal_file, data.stimulation, data.variation="", nb_cores=1, inits=1000, perform_plots=F, precorrelate=T, method="geneticlhs", unused_perturbations=c(), unused_readouts=c(), MIN_CV=0.1, DEFAULT_CV=0.3, model_name="", optimizer="levmar", data_space="linear") {
+createModel <- function(model_links, 
+                        basal_file, 
+                        data.stimulation, 
+                        data.variation="", 
+                        nb_cores=1, 
+                        inits=1000, 
+                        perform_plots=F, 
+                        precorrelate=T, 
+                        method="geneticlhs", 
+                        unused_perturbations=c(), 
+                        unused_readouts=c(), 
+                        MIN_CV=0.1, 
+                        DEFAULT_CV=0.3, 
+                        model_name="default", 
+                        optimizer="levmar", 
+                        data_space="linear") {
   # Creation of the model structure object
   model_structure = extractStructure(model_links)
   basal_activity = extractBasalActivity(basal_file)
   
-  core = extractModelCore(model_structure, basal_activity, data.stimulation, data.variation, unused_perturbations, unused_readouts, MIN_CV, DEFAULT_CV, data_space=data_space)
+  core = extractModelCore(model_structure, 
+                          basal_activity, 
+                          data.stimulation, 
+                          data.variation, 
+                          unused_perturbations, 
+                          unused_readouts, 
+                          MIN_CV, 
+                          DEFAULT_CV, 
+                          data_space=data_space)
   expdes = core$design
   data = core$data
 
@@ -992,7 +969,15 @@ extractMIDAS <- function(to_detect) {
 #' @param DEFAULT_CV Default coefficient of variation to use when none is provided and there are no replicates in the data.
 #' @param data_space One of "log" or "linear". Determines whether the data should be fitted in log space or linear space. The parameters will be in log space in both cases, but the log space data might be more adapted if the data are log-normal (as opposed to normal assumed by the linear option).
 #' @seealso \code{\link{extractMIDAS}}
-extractModelCore <- function(model_structure, basal_activity, data_filename, var_filename="", dont_perturb=c(), dont_read=c(), MIN_CV=0.1, DEFAULT_CV=0.3, data_space="log") {
+extractModelCore <- function(model_structure,
+                             basal_activity,
+                             data_filename,
+                             var_filename="",
+                             dont_perturb=c(),
+                             dont_read=c(),
+                             MIN_CV=0.1,
+                             DEFAULT_CV=0.3,
+                             data_space="log") {
   if (!data_space %in% c("log", "linear")) { stop(paste("Invalid 'data_space':", data_space, ", must be one of c('log', 'linear')")) }
 
   model_structure = extractStructure(model_structure)
@@ -1069,40 +1054,17 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
   # Means of basal activity of antibodies
   unstim_values = colMeans(data_values[controls,,drop=FALSE], na.rm=TRUE)
   if (any(is.nan(unstim_values)|is.na(unstim_values))) {
-    stop("Unstimulated data are required to simulate the network")
+    stop("Unstimulated data must not contain missing data points to simulate the network")
   }
-
-
-  ## ERROR MODEL
-
-  # Calculate statistics for variation data
-  if (length(c(rm_rows,blanks))>0){
-    if (data_space == "log") {
-      mean_stat = aggregate(data_values[-c(rm_rows,blanks),,drop=FALSE], by=perturbations[-c(rm_rows,blanks),,drop=FALSE], geom_mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      sd_stat = aggregate(data_values[-c(rm_rows,blanks),,drop=FALSE], by=perturbations[-c(rm_rows,blanks),,drop=FALSE], linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    } else {
-      mean_stat = aggregate(data_values[-c(rm_rows,blanks),,drop=FALSE], by=perturbations[-c(rm_rows,blanks),,drop=FALSE], mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      sd_stat = aggregate(data_values[-c(rm_rows,blanks),,drop=FALSE], by=perturbations[-c(rm_rows,blanks),,drop=FALSE], sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    }
-  } else {
-    if (data_space == "log") {
-      mean_stat = aggregate(data_values, by=perturbations, geom_mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      sd_stat = aggregate(data_values, by=perturbations, linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    } else {
-      mean_stat = aggregate(data_values, by=perturbations, mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      sd_stat = aggregate(data_values, by=perturbations, sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    }
-  }
-
-  # Delete the perturbations that cannot be used, blank and controls from the dataset
-  rm_rows = c(rm_rows, controls, blanks) 
-  data_values = data_values[-rm_rows,,drop=F]
-  perturbations = perturbations[-rm_rows,,drop=F]
+  
+  # Delete the perturbations that cannot be used, blanks and controls from the stimulation data
+  data_filtered = data_values[-c(rm_rows, controls, blanks),,drop=F]
+  perturbations_filtered = perturbations[-c(rm_rows, controls, blanks),,drop=F]
   # Compute the mean and standard deviation of the data
   if (data_space == "log") {
-      mean_values = aggregate(data_values, by=perturbations, geom_mean)[,-(1:ncol(perturbations)),drop=F] # Use the geometric mean if we assume data are log-normal
+      mean_values = aggregate(data_filtered, by=perturbations_filtered, geom_mean)[,-(1:ncol(perturbations_filtered)),drop=F] # Use the geometric mean if we assume data are log-normal
   } else {
-      mean_values = aggregate(data_values, by=perturbations, mean, na.rm=T)[,-(1:ncol(perturbations)),drop=F]
+      mean_values = aggregate(data_filtered, by=perturbations_filtered, mean, na.rm=T)[,-(1:ncol(perturbations_filtered)),drop=F]
   }
   # Put blank and unstimulated values in matrices of the right size
   blank_values = matrix( rep(blank_values, each=nrow(mean_values)), nrow=nrow(mean_values), dimnames=list(NULL, colnames(mean_values)) )
@@ -1119,8 +1081,16 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
     message(head(mean_values))
   }
 
-  if (any(var_filename != "")) {
-    # We use the CV file if there is one
+  ## ERROR MODEL
+
+  # Derive the coefficient of variation (CV)
+  keep = rep(TRUE, nrow(data_values))
+  if (length(c(rm_rows,blanks)) > 0) {
+    keep[c(rm_rows,blanks)] = FALSE
+  }
+  
+    if (any(var_filename != "")) {
+    # We use the var file if there is one
     # The format and the order of the conditions are assumed to be the same as the data file
     message(paste0("Using var file ", var_filename))
     variation_file = extractMIDAS(var_filename)
@@ -1143,40 +1113,47 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
     # Gather the cv values corresponding to the experimental design
     pre_cv = variation_file[, grepl("^DV", colnames(variation_file))]
     colnames(pre_cv) = gsub("^[A-Z]{2}.", "", colnames(pre_cv))
-    cv_values = pre_cv[,colnames(pre_cv)%in%colnames(mean_values)]
-    cv_values = cv_values[-rm_rows,,drop=FALSE]
-    cv_values = aggregate(cv_values, by=perturbations, mean, na.rm=T)[,-(1:ncol(perturbations))]
+      cv_values = aggregate(pre_cv[-c(which(!keep),controls),,drop=FALSE], by=perturbations[-c(which(!keep),controls),,drop=FALSE], median, na.rm=T)[,-(1:ncol(perturbations))]  
+      
   } else {
-    # remove measurements not different from blank
-    mean_stat = sapply(1:length(mean_stat), function(col){ xx=mean_stat[,col]; xx[xx< 1.5*blank_values[col]] = NA; xx})
+    # If no variation file is given, we extract error information from the csv file.
+      if (data_space == "log") {
+        mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], geom_mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+        sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+      } else {
+        mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+        sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+      }
+    
+    # remove measurements not different from blank as there associated error estimate reflects technical precision and not variance of a biological signal
+    mean_stat = sapply(colnames(mean_stat), function(col){ xx=mean_stat[,col]; xx[xx< 1.5*blank_values[1,col]] = NA; xx})
+    sd_stat[is.na(mean_stat)] = NA
+    
     if (data_space == "log") {
-      median_cv = apply(log(sd_stat) / log(mean_stat), 2, median, na.rm=T)
+      median_cv = apply(sd_stat-1, 2, median, na.rm=T)
     } else {
       median_cv = apply(sd_stat / mean_stat, 2, median, na.rm=T)
     }
-    cv_values = matrix(rep(median_cv,each=nrow(mean_values)),nrow=nrow(mean_values))
+    cv_values = matrix(rep(median_cv,each=nrow(mean_values)), nrow=nrow(mean_values), dimnames = list(NULL,colnames(mean_values)))
   }
-  colnames(cv_values)=colnames(mean_values)
+  
+  # correct for sample size
+  keep_stim = keep
+  keep_stim[controls] = FALSE
+  replicates_count = aggregate(cbind(matrix(1, nrow=sum(keep_stim), dimnames=list(NULL,"count")), perturbations[keep_stim,,drop=F])[1], by=perturbations[keep_stim,,drop=F], sum, na.rm=TRUE)
+  cv_values = cv_values / sqrt(matrix(rep(replicates_count$count, ncol(cv_values)), ncol=ncol(cv_values)))
+  
+  # put default cv for missing values and a lower cutoff to prevent overfitting
   cv_values[is.nan(as.matrix(cv_values)) | is.na(cv_values)] = DEFAULT_CV
   cv_values[cv_values < MIN_CV] = MIN_CV
-
-  # Derive the error either from the CV in linear space or the sd of the log in log space
+  
   if (data_space == "log") {
-    message("data space is set to 'log', computing error solely from the .csv file, ignoring the .var file!")
-    error = aggregate(data_values, by=perturbations, linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-    replicates_count = aggregate(cbind(matrix(1, nrow=nrow(perturbations), dimnames=list(NULL,"count")), perturbations)[1], by=perturbations, sum, na.rm=TRUE)
-    error = exp( matrix(colMeans(log(error), na.rm=TRUE), nrow=nrow(error), ncol=ncol(error), byrow=TRUE, dimnames=list(rownames(error), colnames(error))) / sqrt(matrix(rep(replicates_count$count, ncol(error)), ncol=ncol(error))) )
-    error[error < exp(MIN_CV)] = exp(MIN_CV)
-    error[is.na(error)] = mean(as.matrix(error), na.rm=TRUE)
+    error = cv_values + 1
     if ( all(is.na(error))) {
-      error[is.na(error)] = exp(DEFAULT_CV) # If no replicates are present, set the error to the DEFAULT_CV (in log)
+      error[is.na(error)] = DEFAULT_CV + 1 # If no replicates are present, set the error to the DEFAULT_CV 
     }
   } else {
     error = cv_values * mean_values
-    # Normalise by the number of replicates for each measurement (standard error of the mean)
-    replicates_count = aggregate(cbind(matrix(1, nrow=nrow(perturbations), dimnames=list(NULL,"count")), perturbations)[1], by=perturbations, sum, na.rm=TRUE)
-    error = error / sqrt(matrix(rep(replicates_count$count, ncol(error)), ncol=ncol(error)))
-    #error = apply(error, 2, function(ee){ ee[ee<1e-5]=mean(as.matrix(ee), na.rm=TRUE); return(ee) })
     error[error<0.001] = mean(as.matrix(error), na.rm=TRUE) # The error cannot be 0 as it is used for the fit. If we get 0 (which means stim_data=0), we set it to 1 (which mean the score will simply be (fit-data)^2 for those measurements). We also ensure that is is not too small (which would lead to a disproportionate fit attempt)
   }
   if (verbose > 5) {
@@ -1185,7 +1162,7 @@ extractModelCore <- function(model_structure, basal_activity, data_filename, var
   }
 
   # Extract experimental design
-  perturbations = aggregate(perturbations, by=perturbations, max, na.rm=T)[,-(1:ncol(perturbations)),drop=F]
+  perturbations = aggregate(perturbations[keep_stim,,drop=F], by=perturbations[keep_stim,,drop=F], max, na.rm=T)[,-(1:ncol(perturbations)),drop=F]
   names = colnames(perturbations)
   stim_names = names[grepl("[^i]$", names)]
   stim_nodes = as.character( stim_names[match(model_structure$names, stim_names, nomatch = 0)] )
