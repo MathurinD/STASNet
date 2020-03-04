@@ -369,7 +369,11 @@ plotParameters <- function(aggregated_paths, lim=2, repar=TRUE, resetpar=TRUE, v
 plotModelParameters <- function(models, non_stop_nodes=c(), lim=2) {
     if ("MRAmodel" %in% class(models)) {
         model_list = list()
-        model_list[[models$name]] = models
+        if (models$name != "") {
+            model_list[[models$name]] = models
+        } else {
+            model_list[["unnamed_model"]] = models
+        }
         models = model_list
     }
     if (!is.list(models)) { stop("'models' must be a list") }

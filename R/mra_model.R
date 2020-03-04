@@ -163,14 +163,14 @@ generate_infos <- function(input_file, inits, best_resid, method, model_links, n
         model_links = "R data"
     }
     infos$infos = c(paste0(inits, " samplings"), paste0( "Best residuals : ", paste0(best_resid, collapse=" ") ), paste0("Method : ", method), paste0("Network : ", model_links), fit_info)
-    if (name != "") {
+    if ((length(name) == 1 && name != "") || (all(name == ""))) {
         infos$name = name
     } else if ( !is.matrix(input_file) && all(sapply(input_file, is.string)) ) {
       infos$name = gsub("\\.csv", "", gsub("_MIDAS", "", basename(input_file)))
     } else if (is.list(input_file) && names(input_file)[1]!= "ID:type") {
       infos$name = names(input_file)
     } else {
-      infos$name = "default"
+      infos$name = rep("default", length(input_file))
     }
 
     return(infos)
