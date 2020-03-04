@@ -102,13 +102,7 @@ only_stim = dumb_midas[, -3]
 only_inhib = dumb_midas[, -2]
 
 test_that("Only inhibitions works in extractModelCore", {
-    expect_silent(extractModelCore(dumb_structure, dumb_activity, only_inhib))
-})
-test_that("Only inhibitions works in extractModelCore with inhibitions sorting", {
-    expect_silent(extractModelCore(dumb_structure, dumb_activity, only_inhib))
-})
-test_that("Only inhibitions works in extractModelCore with stimulations sorting", {
-    expect_silent(extractModelCore(dumb_structure, dumb_activity, only_inhib))
+    expect_silent(extractModelCore(dumb_structure, dumb_activity, only_inhib, data_space="linear"))
 })
 test_that("Only inhibitions createModel works", {
     expect_silent(suppressMessages(createModel(dumb_structure, dumb_activity, only_inhib, inits=1)))

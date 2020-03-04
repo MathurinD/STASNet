@@ -528,6 +528,6 @@ test_that("aggregateDirectPaths raises an error if 'names(direct_paths)' is NULL
     expect_error( aggregateDirectPaths(list(direct_path, direct_path)), "must be non NULL" )
 })
 test_that("plotModelParameters works", {
-    expect_silent( plotModelParameters(model) )
+    expect_silent( plotModelParameters(alt_model) )
 })
 
