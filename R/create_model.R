@@ -1088,6 +1088,8 @@ extractModelCore <- function(model_structure,
   if (length(c(rm_rows,blanks)) > 0) {
     keep[c(rm_rows,blanks)] = FALSE
   }
+  keep_stim = keep
+  keep_stim[controls] = FALSE
   
   if (any(var_filename != "")) {
     # We use the var file if there is one
@@ -1118,31 +1120,29 @@ extractModelCore <- function(model_structure,
       
   } else {
     # If no variation file is given, we extract error information from the csv file.
-      if (data_space == "log") {
-        mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], geom_mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-        sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      } else {
-        mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-        sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
-      }
+    if (data_space == "log") {
+      mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], geom_mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+      sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], linear_sd_log, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+    } else {
+      mean_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], mean, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+      sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
+    }
     
     # remove measurements not different from blank as their associated error estimate reflects technical precision and not variance of a biological signal
     mean_stat = sapply(colnames(mean_stat), function(col){ xx=mean_stat[,col]; xx[xx< 1.5*blank_values[1,col]] = NA; xx})
     sd_stat[is.na(mean_stat)] = NA
     
+    # correct for sample size and compute coefficient of variation
+    replicates_count = aggregate(cbind(matrix(1, nrow=sum(keep_stim), dimnames=list(NULL,"count")), perturbations[keep_stim,,drop=F])[1], by=perturbations[keep_stim,,drop=F], sum, na.rm=TRUE)
+    repcount_matrix = matrix(rep(replicates_count$count, ncol(mean_values)), ncol=ncol(mean_values))
     if (data_space == "log") {
-      median_cv = apply(sd_stat-1, 2, median, na.rm=T)
+      median_cv = apply(sd_stat/sqrt(repcount_matrix)-1, 2, median, na.rm=T)
     } else {
-      median_cv = apply(sd_stat / mean_stat, 2, median, na.rm=T)
+      median_cv = apply(sd_stat/sqrt(repcount_matrix) / mean_stat, 2, median, na.rm=T)
     }
     cv_values = matrix(rep(median_cv,each=nrow(mean_values)), nrow=nrow(mean_values), dimnames = list(NULL,colnames(mean_values)))
+    
   }
-  
-  # correct for sample size
-  keep_stim = keep
-  keep_stim[controls] = FALSE
-  replicates_count = aggregate(cbind(matrix(1, nrow=sum(keep_stim), dimnames=list(NULL,"count")), perturbations[keep_stim,,drop=F])[1], by=perturbations[keep_stim,,drop=F], sum, na.rm=TRUE)
-  cv_values = cv_values / sqrt(matrix(rep(replicates_count$count, ncol(cv_values)), ncol=ncol(cv_values)))
   
   # put default cv for missing values and a lower cutoff to prevent overfitting
   cv_values[is.nan(as.matrix(cv_values)) | is.na(cv_values)] = DEFAULT_CV
