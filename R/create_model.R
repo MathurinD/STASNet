@@ -1089,9 +1089,10 @@ extractModelCore <- function(model_structure,
     keep[c(rm_rows,blanks)] = FALSE
   }
   
-    if (any(var_filename != "")) {
+  if (any(var_filename != "")) {
     # We use the var file if there is one
     # The format and the order of the conditions are assumed to be the same as the data file
+    # We also assume that no transformation is necessary, if data_space="log" we expect the user to have provided the CVs in the correct space
     message(paste0("Using var file ", var_filename))
     variation_file = extractMIDAS(var_filename)
     # Check that the number of samples is the same for the measurements and the variation and that the names in the measurements file and in the variation file match
@@ -1113,7 +1114,7 @@ extractModelCore <- function(model_structure,
     # Gather the cv values corresponding to the experimental design
     pre_cv = variation_file[, grepl("^DV", colnames(variation_file))]
     colnames(pre_cv) = gsub("^[A-Z]{2}.", "", colnames(pre_cv))
-      cv_values = aggregate(pre_cv[-c(which(!keep),controls),,drop=FALSE], by=perturbations[-c(which(!keep),controls),,drop=FALSE], median, na.rm=T)[,-(1:ncol(perturbations))]  
+    cv_values = aggregate(pre_cv[-c(which(!keep),controls),,drop=FALSE], by=perturbations[-c(which(!keep),controls),,drop=FALSE], median, na.rm=T)[,-(1:ncol(perturbations))]  
       
   } else {
     # If no variation file is given, we extract error information from the csv file.
@@ -1125,7 +1126,7 @@ extractModelCore <- function(model_structure,
         sd_stat = aggregate(data_values[keep,,drop=FALSE], by=perturbations[keep,,drop=FALSE], sd, na.rm=TRUE)[,-(1:ncol(perturbations)),drop=FALSE]
       }
     
-    # remove measurements not different from blank as there associated error estimate reflects technical precision and not variance of a biological signal
+    # remove measurements not different from blank as their associated error estimate reflects technical precision and not variance of a biological signal
     mean_stat = sapply(colnames(mean_stat), function(col){ xx=mean_stat[,col]; xx[xx< 1.5*blank_values[1,col]] = NA; xx})
     sd_stat[is.na(mean_stat)] = NA
     
