@@ -65,6 +65,18 @@ test_that("The data are loaded correctly", {
 })
 
 
+context("Error computation behaves as expected")
+# Using *modified* copies of the STASNet paper, in particular some rows are duplicated with noise (pseudo-replicate)
+
+test_that("The var file is used when provided", {
+    expect_output( createModel("Widr.tab", "Widr_basal.dat", "Widr_parental_MIDAS.csv", "Widr_parental_MIDAS.var", inits=1000, nb_cores=2, perform_plots=F, method="geneticlhs", MIN_CV=0), NA)
+})
+
+test_that("The ", {
+    expect_output( createModel("Widr.tab", "Widr_basal.dat", "Widr_parental_MIDAS.csv", "Widr_parental_MIDAS.var", inits=1000, nb_cores=2, perform_plots=F, method="geneticlhs", MIN_CV=0), NA)
+})
+
+
 context("Score computation functions")
 
 test_that("computeFitScore works as expected", {

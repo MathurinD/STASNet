@@ -1117,6 +1117,9 @@ extractModelCore <- function(model_structure,
     pre_cv = variation_file[, grepl("^DV", colnames(variation_file))]
     colnames(pre_cv) = gsub("^[A-Z]{2}.", "", colnames(pre_cv))
     cv_values = aggregate(pre_cv[-c(which(!keep),controls),,drop=FALSE], by=perturbations[-c(which(!keep),controls),,drop=FALSE], median, na.rm=T)[,-(1:ncol(perturbations))]  
+    if (length(not_included) > 0) {
+      cv_values = cv_values[,-which(colnames(cv_values) %in% not_included), drop=FALSE]
+    }
       
   } else {
     # If no variation file is given, we extract error information from the csv file.
