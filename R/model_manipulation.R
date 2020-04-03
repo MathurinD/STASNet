@@ -257,18 +257,22 @@ plotModelScores.MRAmodel <- function(mra_model, ...) {
 }
 
 #' @rdname selectMinimalModel
-reduceModel <- function(original_model, accuracy=0.95) {
-    selectMinimalModel(original_model, accuracy)
+#' @export
+reduceModel <- function(original_model, accuracy=0.95, verbose=F, output_file="") {
+    selectMinimalModel(original_model, accuracy, verbose, output_file)
 }
 
+#' Simplify model topology
+#'
 #' Selection of a minimal model by iteratively removing insignificant links using the likelihood ratio test.
+#' reduceModel is an alias for selectMinimalModel.
 #' @param original_model An MRAmodel object, as the one produced by createModel or importModel
 #' @param accuracy Probability threshold, the type I error for each link will be 1-accuracy. Multiple testing is not taken into account.
 #' @return An MRAmodel object of the reduced model with the data
 #' @export
 #' @author Mathurin Dorel \email{dorel@@horus.ens.fr} 
 #' @author Bertram Klinger \email{bertram.klinger@@charite.de}
-selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
+selectMinimalModel <- function(original_model, accuracy=0.95, verbose=F, output_file="") {
   # Clone model object to not change original model specifications
   model_description = cloneModel(original_model)
   
@@ -300,6 +304,8 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
   real_data = model_description$data$stim_data
   
   message("Performing model reduction...")
+  if (output_file != "") { file_con = file(output_file, open="w"); message(paste("Output written in ", output_file)) }
+  else { file_con = stderr() }
   init_residual = model_description$bestfit
   reduce=TRUE
   while (reduce) {
@@ -341,10 +347,10 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
       
       if (verbose) {
         dr = rank - new_rank
-        message(paste("old rank :", rank, ", new rank : ", new_rank))
+        write_or_message(paste("old rank :", rank, ", new rank : ", new_rank), file_con)
         new_residual = residuals[length(residuals)]
         deltares = new_residual - init_residual
-        message(paste(model_structure$names[(ii-1) %/% dim(adj)[1]+1], "->", model_structure$names[(ii-1) %% dim(adj)[1]+1], ": Delta residual = ", trim_num(deltares), "; Delta rank = ", dr, ", p-value = ", pchisq(deltares, df=dr) ))
+        write_or_message(paste(model_structure$names[(ii-1) %/% dim(adj)[1]+1], "->", model_structure$names[(ii-1) %% dim(adj)[1]+1], ": Delta residual = ", trim_num(deltares), "; Delta rank = ", dr, ", p-value = ", pchisq(deltares, df=dr) ), file_con)
       }
       
       newadj[ii]=1 ## Slightly accelerate the computation
@@ -369,15 +375,15 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
       rank = new_rank
       initial_response=params[[order.res[1]]]
       #message(initial_response)
-      message(paste0("Remove link ", order.res[1], ": ",
+      write_or_message(paste0("Remove link ", order.res[1], ": ",
                    model_structure$names[((links.to.test[order.res[1]]-1) %/% (dim(adj)[1])) +1], "->", # Line
-                   model_structure$names[((links.to.test[order.res[1]]-1) %% (dim(adj)[1])) +1])); # Column (+1 because of the modulo and the R matrices starting by 1 instead of 0)
+                   model_structure$names[((links.to.test[order.res[1]]-1) %% (dim(adj)[1])) +1]), file_con); # Column (+1 because of the modulo and the R matrices starting by 1 instead of 0)
       
-      message(paste( "New residual = ", residuals[order.res[1]], ", Delta residual = ", trim_num(deltares), ",  p-value = ", trim_num(pchisq(deltares, df=dr)) ))
+      write_or_message(paste( "New residual = ", residuals[order.res[1]], ", Delta residual = ", trim_num(deltares), ",  p-value = ", trim_num(pchisq(deltares, df=dr)) ), file_con)
 
       other_best = which((abs(residuals[order.res] - residuals[order.res[1]])) < 1e-4)[-1]
       if (length(other_best) > 0) {
-          message("--- Other best links ---")
+          write_or_message("--- Other best links ---", file_con)
           for (lid in other_best) {
               deltares = residuals[order.res[lid]] - init_residual
               tmp_rank = ranks[order.res[lid]]
@@ -388,13 +394,13 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
                                model_structure$names[((links.to.test[order.res[lid]]-1) %% (dim(adj)[1])) +1], " belongs to a non-identifiable combination, setting df to 1."))
                 tmp_dr=1
               }
-              message(paste0("    Could remove ",
+              write_or_message(paste0("    Could remove ",
                            model_structure$names[((links.to.test[order.res[lid]]-1) %/% (dim(adj)[1])) +1], "->", 
-                           model_structure$names[((links.to.test[order.res[lid]]-1) %% (dim(adj)[1])) +1])); 
-              message(paste( "    New residual = ", residuals[order.res[lid]], ", Delta residual = ", trim_num(deltares), ",  p-value = ", trim_num(pchisq(deltares, df=tmp_dr)) ))
+                           model_structure$names[((links.to.test[order.res[lid]]-1) %% (dim(adj)[1])) +1]), file_con); 
+              write_or_message(paste( "    New residual = ", residuals[order.res[lid]], ", Delta residual = ", trim_num(deltares), ",  p-value = ", trim_num(pchisq(deltares, df=tmp_dr)) ), file_con)
           }
       }
-      message("------------------------------------------------------------------------------------------------------")
+      write_or_message("------------------------------------------------------------------------------------------------------", file_con)
       init_residual = residuals[order.res[1]]
       model_description$bestfit = sort(residuals)[1]
     } else {
@@ -402,6 +408,7 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
     }
   }
   message("Reduction complete")
+  if (output_file != "" ) {writeLines("-- End of reduction --", file_con); close(file_con)}
   # We recover the final model
   ## Basal activity and data do not change
   model_description$structure$setAdjacencyMatrix(adj)
@@ -423,7 +430,7 @@ selectMinimalModel <- function(original_model, accuracy=0.95,verbose=F) {
   if ("MRAmodelSet" %in% class(model_description)){
     return(model_description)
   } else{
-  return(computeFitScore(model_description))
+    return(computeFitScore(model_description))
   }
 }
 

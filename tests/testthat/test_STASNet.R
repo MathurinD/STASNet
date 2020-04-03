@@ -263,6 +263,10 @@ test_that("Model gets reduced correctly", {
     red_model = reduceModel(model)
 })
 
+test_that("Model reduction is saveable in a file", {
+    expect_message(reduceModel(model, output_file="saving_reduction"))
+})
+
 context("Score computations functions")
 
 # Dumb model

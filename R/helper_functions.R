@@ -99,3 +99,11 @@ not_duplicated <- function(x){
     tmp = duplicated(x)
     return(!all(tmp[-1]))
 }
+
+write_or_message <- function(out, file_con="") {
+    if (file_con == "" || file_con == stderr() ) {
+        message(out)
+    } else {
+        writeLines(out, file_con)
+    }
+}
