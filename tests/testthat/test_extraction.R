@@ -65,10 +65,23 @@ test_that("createModelSet works with R objects", {
 context("Model core data extraction")
 
 test_that("extractModelCore works as expected", {
-    expect_silent(suppressMessages(extractModelCore(dumb_structure, dumb_activity, dumb_midas)))
+    expect_silent(suppressMessages(STASNet:::extractModelCore(dumb_structure, dumb_activity, dumb_midas)))
 })
 test_that("extractModelCore error when perturbations are missing", {
-    expect_error(suppressMessages(extractModelCore(dumb_structure, dumb_activity, no_perturbations_midas)))
+    expect_error(suppressMessages(STASNet:::extractModelCore(dumb_structure, dumb_activity, no_perturbations_midas)))
+})
+# Using *modified* copies of data from the STASNet paper, in particular some rows are duplicated with noise (pseudo-replicate)
+test_that("The var file is used when provided", {
+    var_core = STASNet:::extractModelCore("Widr.tab", "Widr_basal.dat", "Widr_parental_MIDAS.csv", "Widr_parental_MIDAS.var", MIN_CV=0)
+    expect_equal_to_reference( var_core$cv, "var_core_cv.rds" )
+})
+test_that("Consistent error calculations in linear space", {
+    linear_core = STASNet:::extractModelCore("Widr.tab", "Widr_basal.dat", "Widr_parental_MIDAS.csv", "", MIN_CV=0, data_space="linear")
+    expect_equal_to_reference( linear_core$cv, "linear_core_cv.rds" )
+})
+test_that("Consistent error calculations in log space", {
+    log_core = STASNet:::extractModelCore("Widr.tab", "Widr_basal.dat", "Widr_parental_MIDAS.csv", "", MIN_CV=0, data_space="log")
+    expect_equal_to_reference( log_core$cv, "log_core_cv.rds" )
 })
 
 context("Limit cases for createModel")
@@ -102,7 +115,7 @@ only_stim = dumb_midas[, -3]
 only_inhib = dumb_midas[, -2]
 
 test_that("Only inhibitions works in extractModelCore", {
-    expect_silent(extractModelCore(dumb_structure, dumb_activity, only_inhib, data_space="linear"))
+    expect_silent(STASNet:::extractModelCore(dumb_structure, dumb_activity, only_inhib, data_space="linear"))
 })
 test_that("Only inhibitions createModel works", {
     expect_silent(suppressMessages(createModel(dumb_structure, dumb_activity, only_inhib, inits=1)))
@@ -115,15 +128,6 @@ test_that("Deleting all inhibition work", {
 })
 test_that("Deleting all stimulation work", {
     expect_silent(suppressMessages( createModel(dumb_structure, dumb_activity, dumb_midas, inits=1, unused_perturbations=c("N1")) ))
-})
-
-context("Model core data extraction")
-
-test_that("extractModelCore works as expected", {
-    expect_silent(suppressMessages(extractModelCore(dumb_structure, dumb_activity, dumb_midas)))
-})
-test_that("extractModelCore error when perturbations are missing", {
-    expect_error(suppressMessages(extractModelCore(dumb_structure, dumb_activity, no_perturbations_midas)))
 })
 
 context("Model can handle precorrelations")

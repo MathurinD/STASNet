@@ -1139,7 +1139,7 @@ extractModelCore <- function(model_structure,
     replicates_count = aggregate(cbind(matrix(1, nrow=sum(keep_stim), dimnames=list(NULL,"count")), perturbations[keep_stim,,drop=F])[1], by=perturbations[keep_stim,,drop=F], sum, na.rm=TRUE)
     repcount_matrix = matrix(rep(replicates_count$count, ncol(mean_values)), ncol=ncol(mean_values))
     if (data_space == "log") {
-      median_cv = apply(sd_stat/sqrt(repcount_matrix)-1, 2, median, na.rm=T)
+      median_cv = apply(exp(log(sd_stat)/sqrt(repcount_matrix))-1, 2, median, na.rm=T)
     } else {
       median_cv = apply(sd_stat/sqrt(repcount_matrix) / mean_stat, 2, median, na.rm=T)
     }
