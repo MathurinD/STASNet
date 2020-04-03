@@ -241,6 +241,16 @@ print(suppressWarnings(trim_num(ext_mat)))
 ```
 In this toy example the data is already well represented with no significantly missing link (see multiple testing adjusted p-values column adj_pval).
 
+Now that we have a satisfying model, it can be exported with `exportModel`. Note that the model *cannot* be saved as an RData object because of the underlying C++ code, it has to be saved with `exportModel`.
+```{r}
+exportModel(red_model, "best_model.mra")
+```
+The model can then be rebuilt with `importModel` (or with the more complex `rebuildModel` which allows to retrain the model with new data).
+```{r}
+red_model = importModel("best_model.mra")
+```
+
+
 ## Modelset
 
 A model set is the appropriate choice if several data sets are so similar that they can be jointly fitted  with the same model and only some links are of need to be fitted individually between data sets. 
