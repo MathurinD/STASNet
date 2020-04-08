@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_model.R
 \name{createModel}
 \alias{createModel}
-\title{Create and fit a parameterised model}
+\title{Creates and fits a parameterised model from experimental data, network structure and basal activity information.}
 \usage{
 createModel(
   model_links,
@@ -18,7 +18,7 @@ createModel(
   unused_readouts = c(),
   MIN_CV = 0.1,
   DEFAULT_CV = 0.3,
-  model_name = "",
+  model_name = "default",
   optimizer = "levmar",
   data_space = "linear"
 )

@@ -3,11 +3,16 @@
 \name{reduceModel}
 \alias{reduceModel}
 \alias{selectMinimalModel}
-\title{Selection of a minimal model by iteratively removing insignificant links using the likelihood ratio test.}
+\title{Simplify model topology}
 \usage{
-reduceModel(original_model, accuracy = 0.95)
+reduceModel(original_model, accuracy = 0.95, verbose = F, output_file = "")
 
-selectMinimalModel(original_model, accuracy = 0.95, verbose = F)
+selectMinimalModel(
+  original_model,
+  accuracy = 0.95,
+  verbose = F,
+  output_file = ""
+)
 }
 \arguments{
 \item{original_model}{An MRAmodel object, as the one produced by createModel or importModel}
@@ -19,6 +24,7 @@ An MRAmodel object of the reduced model with the data
 }
 \description{
 Selection of a minimal model by iteratively removing insignificant links using the likelihood ratio test.
+reduceModel is an alias for selectMinimalModel.
 }
 \author{
 Mathurin Dorel \email{dorel@horus.ens.fr}

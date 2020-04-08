@@ -12,7 +12,7 @@ plotModelAccuracy(x, ...)
   model_description,
   limit = Inf,
   show_values = TRUE,
-  graphs = c("accuracy", "diff", "data", "simulation", "prediction"),
+  graphs = c("accuracy", "diff", "data", "simulation", "prediction", "qq"),
   selected_treatments = c(),
   selected_readouts = c(),
   name = "",
