@@ -10,7 +10,9 @@ plotModelGraph(
   scaling = 5,
   max_width = 3,
   min_width = 1,
-  main = ""
+  main = "",
+  sub = "",
+  spline = ""
 )
 }
 \arguments{
