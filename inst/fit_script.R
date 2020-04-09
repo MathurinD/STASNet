@@ -279,7 +279,7 @@ if (reduction) {
 }
 
 if (extension) {
-    sug_ext = suggestExtension(model, T, cores)
+    sug_ext = suggestExtension(model, cores)
     write.table(sug_ext, file.path(folder, paste0("extension_", conditions, ".csv")), row.names=FALSE, quote=FALSE, sep="\t")
 }
 

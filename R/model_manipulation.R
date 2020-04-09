@@ -439,7 +439,6 @@ selectMinimalModel <- function(original_model, accuracy=0.95, verbose=F, output_
 #' A new link found to be suitable by the modeller can then added by re-running the createModel function with the altered adjacency information.
 #' Note that values assigned to be exactly 1 inidicate almost always an non-identifiable link, whose combined value is assigned to another node in the combination!
 #' @param original_model MRAmodel or MRAmodelSet object describing the model and its best fit, containing the data
-#' @param parallel Boolean number indicating whether addition is executed in a parallel fashion
 #' @param mc Number of cores that should be used for the computation
 #' @param sample_range Numeric vector containing all starting values for the new link (DEFAULT: c(10^(2:-1),0,-10^(-1:2)))
 #' @param padjust_method The method to use for the adjusted p-value, as defined in p.adjust. 'BY' by default which provides the FDR under general dependence assumption (conservative)
@@ -452,7 +451,7 @@ selectMinimalModel <- function(original_model, accuracy=0.95, verbose=F, output_
 #' @examples \dontrun{
 #' ext_list = suggestExtension(mramodel)
 #' }
-suggestExtension <- function(original_model,parallel = F, mc = 1, sample_range=c(10^(2:-1),0,-10^(-1:2)), padjust_method="bonferroni", print = F, fname="Additional_link_suggestion.txt"){
+suggestExtension <- function(original_model, mc = 1, sample_range=c(10^(2:-1),0,-10^(-1:2)), padjust_method="bonferroni", print = F, fname="Additional_link_suggestion.txt"){
   if (mc == 0) {
       mc = detectCores() - 1
   }
@@ -500,10 +499,10 @@ suggestExtension <- function(original_model,parallel = F, mc = 1, sample_range=c
   message(paste0(length(links_to_test)," links will be tested..."))
   
   # Each link is added and compared to the previous model
-  if (parallel == T){
+  if (mc > 1) {
     extension_mat=mclapply(links_to_test,addLink,adj,rank,init_residual,model,initial_response,expdes,data,model_structure,sample_range,variable_links,mc.cores=mc)  
     extension_mat=as.data.frame(do.call("rbind",extension_mat))
-  }else{
+  } else {
     cnames=c("adj_idx","from","to","value","residual","df","Res_delta","df_delta","pval")
     extension_mat=data.frame(matrix(NA,nrow=length(links_to_test),ncol=length(cnames),byrow=T))
     for (ii in 1:length(links_to_test))

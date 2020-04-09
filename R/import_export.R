@@ -457,6 +457,10 @@ readMIDAS <- function(fname) {
 
     return(measures[order(rownames(measures)),,drop=FALSE])
 }
+
+#' Check conformity with MIDAS format
+#'
+#' Validate that a matrix conforms to the MIDAS format
 #' @param data_file A matrix to be checked for MIDAS compliance
 #' @param handler Function to use to handle the error message. Should be 'stop', 'warning', 'print' or 'message'
 checkMIDAS <- function(data_file, handler=stop) {
