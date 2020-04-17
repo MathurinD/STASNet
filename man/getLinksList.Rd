@@ -9,6 +9,9 @@ getLinksList(mra_model)
 \arguments{
 \item{mra_model}{An MRAmodel object.}
 }
+\value{
+A data.frame with 2 columns, IN and OUT, corresponding to a directed adjacency list.
+}
 \description{
 Get the structure of the model network as an adjacency matrix
 }

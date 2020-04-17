@@ -535,3 +535,35 @@ test_that("plotModelParameters works", {
     expect_silent( plotModelParameters(alt_model) )
 })
 
+context("Model data 'get' functions")
+
+test_that("getModelReadouts works", {
+    expect_equal_to_reference(getModelReadouts(model), "getModelReadouts.rds", tolerance=1e-5)
+})
+test_that("getModelPerturbations works", {
+    expect_equal_to_reference(getModelPerturbations(model), "getModelPerturbations.rds", tolerance=1e-5)
+})
+test_that("getModelStimData works", {
+    expect_equal_to_reference(getModelStimData(model), "getModelStimData.rds", tolerance=1e-5)
+})
+test_that("getModelSimulationData works", {
+    expect_equal_to_reference(getModelSimulationData(model), "getModelSimulationData.rds", tolerance=1e-5)
+})
+
+test_that("getModelSimulationData is coherent with getModelSingleData('simulation')", {
+    expect_equal(getModelSimulationData(model), getModelSingleData(model, "simulation"))
+})
+test_that("getModelStimData is coherent with getModelStimData('stim_data')", {
+    expect_equal(getModelStimData(model), getModelSingleData(model, "stim_data"))
+})
+test_that("getModelSimulationData is coherent with getModelSingleData('simulation')", {
+    expect_equal(getModelSimulationData(model), getModelSingleData(model, "simulation"))
+})
+test_that("getModelError is coherent with getModelSingleData('error')", {
+    expect_equal(getModelError(model), getModelSingleData(model, "error"))
+})
+
+test_that("getModelMismatch gives coherent results", {
+    expect_equal_to_reference(getModelMismatch(model)$mismatch, "getModelMismatch.rds", tolerance=1e-5)
+    expect_equal(getModelMismatch(model)$residual, model$bestfit)
+})

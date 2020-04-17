@@ -180,7 +180,7 @@ generate_infos <- function(input_file, inits, best_resid, method, model_links, n
 #'
 #' Get the structure of the model network as an adjacency matrix
 #' @param mra_model An MRAmodel object.
-#' @value A data.frame with 2 columns, IN and OUT, corresponding to a directed adjacency list.
+#' @return A data.frame with 2 columns, IN and OUT, corresponding to a directed adjacency list.
 #' @export
 getLinksList <- function(mra_model) {
     struct = mra_model$structure

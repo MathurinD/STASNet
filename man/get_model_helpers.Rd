@@ -5,6 +5,7 @@
 \alias{getModelPerturbations}
 \alias{getModelReadouts}
 \alias{getModelStimData}
+\alias{getModelError}
 \alias{getModelSimulationData}
 \alias{getModelSingleData}
 \title{Compute the error of the model}
@@ -16,6 +17,8 @@ getModelPerturbations(model_description)
 getModelReadouts(model_description)
 
 getModelStimData(model_description)
+
+getModelError(model_description)
 
 getModelSimulationData(model_description)
 
@@ -31,6 +34,18 @@ getModelSingleData(
 }
 \value{
 (getModelMismatch) A list with the simulation, the mismatch between the simulation and the data, and the residual of the fit
+
+(getModelPerturbations) A vector of perturbations
+
+(getModelReadouts) A vector of readouts
+
+(getModelStimData) The data matrix with perturbations as rownames and readouts as column names
+
+(getModelError) The error matrix with perturbations as rownames and readouts as column names
+
+(getModelSimulationData) The matrix from the model simulation with perturbations as rownames and readouts as column names
+
+(getModelSingleData) The 'data_type' matrix with perturbations as rownames and readouts as column names.
 }
 \description{
 Get all names of the perturbations used in a model
@@ -38,6 +53,8 @@ Get all names of the perturbations used in a model
 Get the names of the readouts used in a model
 
 Get the input data of a model as a matrix without the control condition
+
+Get the error of a model as a matrix
 
 Get the  data of a model as a matrix without the control condition
 

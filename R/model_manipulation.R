@@ -226,6 +226,7 @@ getModelMismatch <- function(mra_model) {
 #    prediction = log2(mra_model$model$simulate(data, init_params)$prediction / data$unstim_data)
     if (mra_model$use_log) {
         mismatch = (log(stim_data) - log(simulation)) / (log(error)*sqrt(2))
+        error = log(error)
     } else {
         mismatch = (stim_data - simulation) / (error*sqrt(2))
     }
@@ -726,6 +727,7 @@ fitFromModel <- function(mra_model, parameters_model, vary_param=c(), inits=100,
 #' Get all names of the perturbations used in a model
 #' @export
 #' @param model_description An MRAmodel object
+#' @return (getModelPerturbations) A vector of perturbations
 #' @rdname get_model_helpers
 getModelPerturbations <- function(model_description) {
     nodes = model_description$structure$names
@@ -746,6 +748,7 @@ getModelPerturbations <- function(model_description) {
 #'
 #' Get the names of the readouts used in a model
 #' @export
+#' @return (getModelReadouts) A vector of readouts
 #' @rdname get_model_helpers
 getModelReadouts <- function(model_description) {
     nodes = model_description$structure$names
@@ -756,15 +759,33 @@ getModelReadouts <- function(model_description) {
 #'
 #' Get the input data of a model as a matrix without the control condition
 #' @export
+#' @return (getModelStimData) The data matrix with perturbations as rownames and readouts as column names
 #' @rdname get_model_helpers
 getModelStimData <- function(model_description) {
     data = model_description$data$stim_data
     return( matrix( data, nrow=nrow(data), dimnames=list(getModelPerturbations(model_description), getModelReadouts(model_description)) ) )
 }
 
+#' Get the error of a model
+#'
+#' Get the error of a model as a matrix
+#' @export
+#' @return (getModelError) The error matrix with perturbations as rownames and readouts as column names
+#' @rdname get_model_helpers
+getModelError <- function(model_description) {
+    error = model_description$data$error
+    error_matrix = matrix( error, nrow=nrow(error), dimnames=list(getModelPerturbations(model_description), getModelReadouts(model_description)) )
+    if (model_description$use_log) {
+        return(log(error_matrix))
+    } else {
+        return(error_matrix)
+    }
+}
+
 #' Get the input data of a model
 #'
 #' Get the  data of a model as a matrix without the control condition
+#' @return (getModelSimulationData) The matrix from the model simulation with perturbations as rownames and readouts as column names
 #' @export
 #' @rdname get_model_helpers
 getModelSimulationData <- function(model_description) {
@@ -775,6 +796,7 @@ getModelSimulationData <- function(model_description) {
 #'
 #' Get the input data of a model as a matrix without the control condition
 #' @export
+#' @return (getModelSingleData) The 'data_type' matrix with perturbations as rownames and readouts as column names.
 #' @rdname get_model_helpers
 getModelSingleData <- function(model_description, data_type=c("simulation", "stim_data", "unstim_data", "error")) {
     if (length(data_type) > 1) { data_type = data_type[1] }
