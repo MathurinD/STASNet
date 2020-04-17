@@ -220,7 +220,8 @@ plotModelAccuracy.MRAmodelSet <- function(model_description, limit=Inf, show_val
 #' @export
 #' @rdname get_model_helpers
 getModelMismatch <- function(mra_model) {
-    simulation = simulateModel(mra_model)$bestfit # TODO check why different from simulation = model$simulateWithOffset(data, init_params)$prediction
+    #simulation = simulateModel(mra_model)$bestfit # Returns an arbitrary order which is not necessarily the one in the data
+    simulation = mra_model$model$simulateWithOffset(mra_model$data, mra_model$parameters)$prediction
     stim_data = mra_model$data$stim_data
     error = mra_model$data$error
 #    prediction = log2(mra_model$model$simulate(data, init_params)$prediction / data$unstim_data)
