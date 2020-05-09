@@ -507,9 +507,11 @@ suggestExtension <- function(original_model, mc = 1, sample_range=c(10^(2:-1),0,
   } else {
     cnames=c("adj_idx","from","to","value","residual","df","Res_delta","df_delta","pval")
     extension_mat=data.frame(matrix(NA,nrow=length(links_to_test),ncol=length(cnames),byrow=T))
-    for (ii in 1:length(links_to_test))
+    for (ii in seq_along(links_to_test)) {
+      message(paste0("Test link ", ii, "/", length(links_to_test)))
       extension_mat[ii,]=addLink(links_to_test[ii],adj,rank,init_residual,model,initial_response,expdes,data,model_structure,sample_range,variable_links,verbose=T)
-  colnames(extension_mat) <- cnames  
+    }
+    colnames(extension_mat) <- cnames  
   } 
   extension_mat=extension_mat[order(as.numeric(as.matrix(extension_mat$Res_delta)),decreasing=T),]
   extension_mat=data.frame(extension_mat,"adj_pval"=p.adjust(as.numeric(as.matrix(extension_mat$pval)),method=padjust_method))
@@ -617,7 +619,7 @@ addLink <-  function(new_link,adj,rank,init_residual,model,initial_response,expd
     initial_response$local_response[new_link]=0
   }
     if ( verbose == T ){
-    message(paste("[",extension_mat[1], "]" ,
+    message(paste("[id:",extension_mat[1], "]" ,
                      ", new : ", new_rank,
                      extension_mat[2],"->",
                      extension_mat[3],
