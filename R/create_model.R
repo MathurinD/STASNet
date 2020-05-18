@@ -21,7 +21,7 @@ debug = TRUE
 #' @param basal_file Path to the file indicating the nodes with basal activity. Extension .dat expected.
 #' @param data.stimulation Path to the file containing the data in MRA_MIDAS format. Extension .csv expected.
 ## CHECK THE IMPLEMENTATION FOR THE NO BASAL
-#' @param data.variation Path to the file containing the coefficient of variation for each measurement in MRA_MIDAS format. If it is not provided, the function uses the replicates of the data.stimulation file to determine a variance per probe (i.e antibody/DNA fragment/...). Extension .var expected.
+#' @param data.variation Path to the file containing the coefficient of variation (or the error if data_space="log") for each measurement in MRA_MIDAS format. If it is not provided, the function uses the replicates of the data.stimulation file to determine a variance per probe (i.e antibody/DNA fragment/...). Extension .var expected.
 #' @param nb_cores Number of cores that should be used for the computation
 #' @param inits Number of initialisation steps which should be performed (see method for the exact meaning of this value)
 #' @param perform_plots Whether the distribution of the residuals and the correlation plots for the parameters deduced by correlation should be plotted or not. A vector of characters in c("residuals", "plots", "both")
@@ -1095,7 +1095,11 @@ extractModelCore <- function(model_structure,
     # We use the var file if there is one
     # The format and the order of the conditions are assumed to be the same as the data file
     # We also assume that no transformation is necessary, if data_space="log" we expect the user to have provided the CVs in the correct space
-    message(paste0("Using var file ", var_filename))
+    if (length(var_filename) == 1) {
+        message(paste0("Using var file ", var_filename))
+    } else {
+        message("Using var file ")
+    }
     variation_file = extractMIDAS(var_filename)
     # Check that the number of samples is the same for the measurements and the variation and that the names in the measurements file and in the variation file match
     if (nrow(variation_file) != nrow(data_file)) {
@@ -1104,7 +1108,7 @@ extractModelCore <- function(model_structure,
     notInVar = setdiff(colnames(data_file),colnames(variation_file))
     if (length(notInVar)>0){
       stop(paste0("Names of the variation and measurement files do not match","\n",
-                  "Columns ",paste0(notInVar,collapse=" "),
+                  "Columns ", paste0(notInVar,collapse=", "),
                   " from data file are not found in var file!"))
     }
     # Reorder and filter variation columns to columns present in data file
@@ -1139,24 +1143,27 @@ extractModelCore <- function(model_structure,
     replicates_count = aggregate(cbind(matrix(1, nrow=sum(keep_stim), dimnames=list(NULL,"count")), perturbations[keep_stim,,drop=F])[1], by=perturbations[keep_stim,,drop=F], sum, na.rm=TRUE)
     repcount_matrix = matrix(rep(replicates_count$count, ncol(mean_values)), ncol=ncol(mean_values))
     if (data_space == "log") {
-      median_cv = apply(exp(log(sd_stat)/sqrt(repcount_matrix))-1, 2, median, na.rm=T)
+      median_cv = apply(exp(log(sd_stat)/sqrt(repcount_matrix)), 2, median, na.rm=T)
     } else {
       median_cv = apply(sd_stat/sqrt(repcount_matrix) / mean_stat, 2, median, na.rm=T)
     }
     cv_values = matrix(rep(median_cv,each=nrow(mean_values)), nrow=nrow(mean_values), dimnames = list(NULL,colnames(mean_values)))
-    
   }
   
-  # put default cv for missing values and a lower cutoff to prevent overfitting
-  cv_values[is.nan(as.matrix(cv_values)) | is.na(cv_values)] = DEFAULT_CV
-  cv_values[cv_values < MIN_CV] = MIN_CV
-  
   if (data_space == "log") {
-    error = cv_values + 1
+    # put default cv for missing values and a lower cutoff to prevent overfitting
+    # in log-space we don't care about the CV, the error is considered constant so use min/default CVs as error directly.
+    # this also means that any imported error from a .var file is used directly
+    cv_values[is.nan(as.matrix(cv_values)) | is.na(cv_values)] = exp(DEFAULT_CV)
+    cv_values[cv_values < MIN_CV] = exp(MIN_CV)
+    error = cv_values
     if ( all(is.na(error))) {
-      error[is.na(error)] = DEFAULT_CV + 1 # If no replicates are present, set the error to the DEFAULT_CV 
+      error[is.na(error)] = exp(DEFAULT_CV) # If no replicates are present, set the error to the DEFAULT_CV 
     }
   } else {
+    # put default cv for missing values and a lower cutoff to prevent overfitting
+    cv_values[is.nan(as.matrix(cv_values)) | is.na(cv_values)] = DEFAULT_CV
+    cv_values[cv_values < MIN_CV] = MIN_CV
     error = cv_values * mean_values
     error[error<0.001] = mean(as.matrix(error), na.rm=TRUE) # The error cannot be 0 as it is used for the fit. If we get 0 (which means stim_data=0), we set it to 1 (which mean the score will simply be (fit-data)^2 for those measurements). We also ensure that is is not too small (which would lead to a disproportionate fit attempt)
   }
